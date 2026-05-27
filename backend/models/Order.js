@@ -1,0 +1,80 @@
+import mongoose from 'mongoose';
+
+const OrderSchema = new mongoose.Schema({
+  storeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Store',
+    required: true,
+  },
+  patientId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Patient',
+    required: true,
+  },
+  prescriptionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Prescription',
+    default: null,
+  },
+  orderNumber: {
+    type: String,
+    required: true,
+  },
+  frameDetails: {
+    brand: { type: String, default: '' },
+    model: { type: String, default: '' },
+    color: { type: String, default: '' },
+    sku: { type: String, default: '' },
+    price: { type: Number, default: 0 },
+  },
+  lensDetails: {
+    type: { type: String, default: '' }, // Single Vision, Bifocal, Progressive
+    brand: { type: String, default: '' },
+    coating: { type: String, default: '' }, // Anti-glare, Blue Cut, Photochromic
+    price: { type: Number, default: 0 },
+  },
+  totalAmount: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
+  discount: {
+    type: Number,
+    default: 0,
+  },
+  tax: {
+    type: Number,
+    default: 0,
+  },
+  finalAmount: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
+  amountPaid: {
+    type: Number,
+    default: 0,
+  },
+  orderStatus: {
+    type: String,
+    enum: ['pending', 'sent-to-lab', 'ready-for-pickup', 'delivered', 'cancelled'],
+    default: 'pending',
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['unpaid', 'partially-paid', 'paid'],
+    default: 'unpaid',
+  },
+  promisedDate: {
+    type: Date,
+    default: null,
+  },
+  remarks: {
+    type: String,
+    default: '',
+  },
+}, {
+  timestamps: true,
+});
+
+export default mongoose.model('Order', OrderSchema);

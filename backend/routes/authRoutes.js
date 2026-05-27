@@ -1,0 +1,19 @@
+import express from 'express';
+import { 
+  registerStore, loginUser, getMe, addStaff, getStaffList, 
+  updateProfile, updateStore 
+} from '../controllers/authController.js';
+import { protect } from '../middleware/auth.js';
+import { checkRole } from '../middleware/role.js';
+
+const router = express.Router();
+
+router.post('/signup', registerStore);
+router.post('/login', loginUser);
+router.get('/me', protect, getMe);
+router.put('/profile', protect, updateProfile);
+router.put('/store', protect, checkRole('owner'), updateStore);
+router.post('/staff', protect, checkRole('owner'), addStaff);
+router.get('/staff', protect, getStaffList);
+
+export default router;
