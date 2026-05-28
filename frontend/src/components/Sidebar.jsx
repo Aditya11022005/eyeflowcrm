@@ -5,6 +5,7 @@ import {
   LayoutDashboard, Users, Calendar, Eye, 
   Glasses, Package, Receipt, Shield, LogOut, Settings, Megaphone
 } from 'lucide-react';
+import eyelitzLogo from '../assets/eyelitz_logo.svg';
 
 const Sidebar = ({ isMobileOpen, onClose, onLogout }) => {
   const { user } = useSelector((state) => state.auth);
@@ -103,18 +104,11 @@ const Sidebar = ({ isMobileOpen, onClose, onLogout }) => {
         }`}
       >
         {/* Branding Header */}
-        <div className="flex items-center gap-3 px-6 py-6 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-tr from-clinic-500 to-cyan-400 text-white shadow-md shadow-clinic-500/20">
-            <Eye className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-clinic-600 to-cyan-500 dark:from-clinic-400 dark:to-cyan-300">
-              EyeFlow CRM
-            </h1>
-            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium tracking-widest uppercase">
-              {role === 'superadmin' ? 'SaaS System' : 'Clinic Suite'}
-            </p>
-          </div>
+        <div className="flex flex-col items-center justify-center py-6 border-b border-slate-100 dark:border-slate-800">
+          <img src={eyelitzLogo} alt="Eyelitz Logo" className="w-24 h-24 object-contain" />
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium tracking-widest uppercase mt-2">
+            {role === 'superadmin' ? 'SaaS System' : 'Clinic Suite'}
+          </p>
         </div>
 
         {/* Navigation list */}

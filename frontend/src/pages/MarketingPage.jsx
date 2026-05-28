@@ -513,10 +513,10 @@ const MarketingPage = () => {
                 <h3 className="font-bold text-slate-800 dark:text-slate-250 text-sm">Send Bulk SMS/WhatsApp Broadcast</h3>
               </div>
 
-              <p className="text-xs text-slate-500">
-                This will send your message template to all patient profiles registered in Eyeflow. Standard placeholders like <code className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded text-[10px]">[Patient Name]</code> and <code className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded text-[10px]">[Clinic Name]</code> can be used in your message text.
+              <p>
+                This will send your message template to all patient profiles registered in Eyelitz. Standard placeholders like <code className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded text-[10px]">[Patient Name]</code> and <code className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded text-[10px]">[Clinic Name]</code> can be used in your message text.
               </p>
-
+ 
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                   Broadcast Message Content
@@ -524,7 +524,7 @@ const MarketingPage = () => {
                 <textarea
                   rows={4}
                   required
-                  placeholder="e.g. Hello [Patient Name], Eyeflow Clinic is offering a flat 20% discount on all premium sunglasses this summer! Bring this SMS to redeem."
+                  placeholder="e.g. Hello [Patient Name], Eyelitz Clinic is offering a flat 20% discount on all premium sunglasses this summer! Bring this SMS to redeem."
                   value={broadcastMessage}
                   onChange={(e) => setBroadcastMessage(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent focus:ring-2 focus:ring-clinic-500 text-xs dark:text-white"

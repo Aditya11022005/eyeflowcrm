@@ -12,6 +12,7 @@ const BillingPage = () => {
   const { user, store } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const [invoices, setInvoices] = useState([]);
+  const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -19,6 +20,15 @@ const BillingPage = () => {
   const [showPayModal, setShowPayModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState('monthly');
   const [priceToPay, setPriceToPay] = useState(299);
+
+  // Coupon states
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponError, setCouponError] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [selectedPackageId, setSelectedPackageId] = useState('');
+
+
 
   // Custom Invoice Modal states
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
@@ -53,9 +63,22 @@ const BillingPage = () => {
     }
   };
 
+  const fetchPackages = async () => {
+    try {
+      const res = await api.get('/public/landing-data');
+      if (res.data.success) {
+        setPackages(res.data.packages || []);
+      }
+    } catch (err) {
+      console.error('Error fetching packages for billing:', err);
+    }
+  };
+
   useEffect(() => {
     fetchInvoices();
+    fetchPackages();
   }, []);
+
 
   // Fetch patients lists for selector dropdown
   useEffect(() => {
@@ -175,7 +198,7 @@ const BillingPage = () => {
     const patient = invoice.patientId;
     const invoiceLink = window.location.origin + "/invoices/" + invoice._id;
 
-    const message = `*INVOICE RECEIPT - ${(store?.name || 'EYEFLOW').toUpperCase()}*
+    const message = `*INVOICE RECEIPT - ${(store?.name || 'EYELITZ').toUpperCase()}*
 --------------------------
 *Invoice No:* ${invoice.invoiceNumber}
 *Date:* ${new Date(invoice.createdAt).toLocaleDateString()}
@@ -197,11 +220,48 @@ Thank you for choosing ${store?.name || 'us'}!`;
     window.open(whatsappUrl, '_blank');
   };
 
-  const openPaymentSimulator = (plan, price) => {
+  const getPlanBasePrice = (plan) => {
+    const matchedPkg = packages.find(p => p.billingCycle === (plan === 'monthly' ? 'month' : 'year'));
+    return matchedPkg ? matchedPkg.price : (plan === 'monthly' ? 299 : 3399);
+  };
+
+  const openPaymentSimulator = (plan, price, pkgId = '') => {
     setSelectedPlan(plan);
     setPriceToPay(price);
+    setSelectedPackageId(pkgId);
+    setCouponCode('');
+    setAppliedCoupon(null);
+    setCouponError('');
     setShowPayModal(true);
   };
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      setCouponError('Please enter a coupon code.');
+      return;
+    }
+    setCouponLoading(true);
+    setCouponError('');
+    try {
+      const res = await api.post('/billing/validate-coupon', {
+        code: couponCode,
+        planType: selectedPlan,
+        packageId: selectedPackageId || undefined
+      });
+      if (res.data.success) {
+        setAppliedCoupon(res.data);
+        setPriceToPay(res.data.finalPrice);
+        setCouponError('');
+      }
+    } catch (err) {
+      setCouponError(err.response?.data?.message || 'Invalid coupon code');
+      setAppliedCoupon(null);
+      setPriceToPay(getPlanBasePrice(selectedPlan));
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
 
   const handleSimulatePayment = async () => {
     setSubmitting(true);
@@ -209,7 +269,9 @@ Thank you for choosing ${store?.name || 'us'}!`;
       const mockPayId = `pay_rzp_mock_${Math.floor(100000000 + Math.random() * 900000000)}`;
       const res = await api.post('/billing/subscribe', {
         planType: selectedPlan,
+        packageId: selectedPackageId || undefined,
         razorpayPaymentId: mockPayId,
+        couponCode: appliedCoupon ? appliedCoupon.code : undefined,
       });
 
       if (res.data.success) {
@@ -270,36 +332,62 @@ Thank you for choosing ${store?.name || 'us'}!`;
 
           {/* Pricing Grid triggers */}
           <div className="lg:col-span-2 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-darkbg-100 shadow-sm grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {/* Monthly Package */}
-            <div className="p-4 rounded-2xl border border-slate-150 dark:border-slate-800 flex flex-col justify-between">
-              <div>
-                <h4 className="font-bold text-sm text-slate-700 dark:text-slate-300">Monthly Plan</h4>
-                <p className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-2">₹299<span className="text-xs font-normal text-slate-400">/mo</span></p>
-                <p className="text-[10px] text-slate-400 mt-2">Excellent for growing clinics needing month-to-month flexibility.</p>
-              </div>
-              <button
-                onClick={() => openPaymentSimulator('monthly', 299)}
-                className="mt-6 w-full py-2.5 bg-slate-950 text-white dark:bg-white dark:text-slate-950 rounded-xl text-xs font-bold hover:opacity-90 transition-opacity cursor-pointer"
-              >
-                Simulate Upgrade
-              </button>
-            </div>
+            {packages.length > 0 ? (
+              packages.map((pkg) => {
+                const isYearly = pkg.billingCycle === 'year';
+                return (
+                  <div key={pkg._id} className={`p-4 rounded-2xl border flex flex-col justify-between relative ${isYearly ? 'border-2 border-clinic-500 shadow-sm' : 'border-slate-150 dark:border-slate-800'}`}>
+                    {pkg.badge && (
+                      <span className="absolute -top-2.5 right-4 bg-clinic-500 text-white font-black text-[8px] px-2 py-0.5 rounded-full uppercase">{pkg.badge}</span>
+                    )}
+                    <div>
+                      <h4 className={`font-bold text-sm ${isYearly ? 'text-clinic-650 dark:text-clinic-450' : 'text-slate-705 dark:text-slate-300'}`}>{pkg.name}</h4>
+                      <p className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-2">₹{pkg.price}<span className="text-xs font-normal text-slate-400">/{pkg.billingCycle === 'month' ? 'mo' : 'yr'}</span></p>
+                      <p className="text-[10px] text-slate-400 mt-2">{pkg.features[0] || 'Dynamic custom package features.'}</p>
+                    </div>
+                    <button
+                      onClick={() => openPaymentSimulator(pkg.billingCycle === 'month' ? 'monthly' : 'yearly', pkg.price, pkg._id)}
+                      className={`mt-6 w-full py-2.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${isYearly ? 'bg-clinic-500 text-white hover:bg-clinic-600 shadow-sm shadow-clinic-500/10' : 'bg-slate-950 text-white dark:bg-white dark:text-slate-950 hover:opacity-90'}`}
+                    >
+                      Simulate Upgrade
+                    </button>
+                  </div>
+                );
+              })
+            ) : (
+              <>
+                {/* Monthly Package */}
+                <div className="p-4 rounded-2xl border border-slate-150 dark:border-slate-800 flex flex-col justify-between">
+                  <div>
+                    <h4 className="font-bold text-sm text-slate-700 dark:text-slate-300">Monthly Plan</h4>
+                    <p className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-2">₹299<span className="text-xs font-normal text-slate-400">/mo</span></p>
+                    <p className="text-[10px] text-slate-400 mt-2">Excellent for growing clinics needing month-to-month flexibility.</p>
+                  </div>
+                  <button
+                    onClick={() => openPaymentSimulator('monthly', 299)}
+                    className="mt-6 w-full py-2.5 bg-slate-950 text-white dark:bg-white dark:text-slate-950 rounded-xl text-xs font-bold hover:opacity-90 transition-opacity cursor-pointer"
+                  >
+                    Simulate Upgrade
+                  </button>
+                </div>
 
-            {/* Yearly Savings Package */}
-            <div className="p-4 rounded-2xl border-2 border-clinic-500 flex flex-col justify-between relative shadow-sm">
-              <span className="absolute -top-2.5 right-4 bg-clinic-500 text-white font-black text-[8px] px-2 py-0.5 rounded-full uppercase">15% Off</span>
-              <div>
-                <h4 className="font-bold text-sm text-clinic-650 dark:text-clinic-400">Annual Plan</h4>
-                <p className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-2">₹3,399<span className="text-xs font-normal text-slate-400">/yr</span></p>
-                <p className="text-[10px] text-slate-400 mt-2">Best value. Locked-in pricing with platform priority support.</p>
-              </div>
-              <button
-                onClick={() => openPaymentSimulator('yearly', 3399)}
-                className="mt-6 w-full py-2.5 bg-clinic-500 text-white rounded-xl text-xs font-bold hover:bg-clinic-600 transition-colors shadow-sm shadow-clinic-500/10 cursor-pointer"
-              >
-                Simulate Upgrade
-              </button>
-            </div>
+                {/* Yearly Savings Package */}
+                <div className="p-4 rounded-2xl border-2 border-clinic-500 flex flex-col justify-between relative shadow-sm">
+                  <span className="absolute -top-2.5 right-4 bg-clinic-500 text-white font-black text-[8px] px-2 py-0.5 rounded-full uppercase">15% Off</span>
+                  <div>
+                    <h4 className="font-bold text-sm text-clinic-650 dark:text-clinic-400">Annual Plan</h4>
+                    <p className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-2">₹3,399<span className="text-xs font-normal text-slate-400">/yr</span></p>
+                    <p className="text-[10px] text-slate-400 mt-2">Best value. Locked-in pricing with platform priority support.</p>
+                  </div>
+                  <button
+                    onClick={() => openPaymentSimulator('yearly', 3399)}
+                    className="mt-6 w-full py-2.5 bg-clinic-500 text-white rounded-xl text-xs font-bold hover:bg-clinic-600 transition-colors shadow-sm shadow-clinic-500/10 cursor-pointer"
+                  >
+                    Simulate Upgrade
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -399,9 +487,64 @@ Thank you for choosing ${store?.name || 'us'}!`;
             <div className="bg-slate-50 p-4 rounded-2xl mb-6 border border-slate-100">
               <p className="text-xs text-slate-500">Upgrade Option:</p>
               <h4 className="text-base font-black capitalize mt-0.5 text-slate-800">{selectedPlan} Subscription Package</h4>
+              
+              {/* Coupon Code Input */}
+              <div className="mt-4 pt-4 border-t border-slate-200">
+                <label className="block text-[10px] font-black uppercase text-slate-500 tracking-wider mb-1">Promo Coupon Code</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    className="flex-1 px-3 py-1.5 rounded-lg border border-slate-250 text-xs uppercase font-mono tracking-wider text-slate-850 bg-white"
+                    placeholder="e.g. WELCOME50"
+                    value={couponCode}
+                    onChange={(e) => {
+                      setCouponCode(e.target.value);
+                      setCouponError('');
+                    }}
+                    disabled={appliedCoupon || couponLoading}
+                  />
+                  {appliedCoupon ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAppliedCoupon(null);
+                        setCouponCode('');
+                        setPriceToPay(getPlanBasePrice(selectedPlan));
+                      }}
+                      className="px-3 py-1.5 text-rose-600 bg-rose-50 border border-rose-100 rounded-lg text-xs font-bold hover:bg-rose-100 cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleApplyCoupon}
+                      disabled={couponLoading || !couponCode.trim()}
+                      className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold disabled:opacity-50 hover:bg-indigo-700 cursor-pointer"
+                    >
+                      {couponLoading ? '...' : 'Apply'}
+                    </button>
+                  )}
+                </div>
+                {couponError && (
+                  <p className="text-[10px] text-rose-500 font-semibold mt-1">{couponError}</p>
+                )}
+                {appliedCoupon && (
+                  <p className="text-[10px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
+                    <Check className="w-3 h-3" />
+                    Coupon "{appliedCoupon.code}" applied! Saved {appliedCoupon.discountType === 'percentage' ? `${appliedCoupon.discountValue}%` : `₹${appliedCoupon.discountValue}`}.
+                  </p>
+                )}
+              </div>
+
               <div className="flex justify-between items-center mt-4 pt-4 border-t border-slate-200">
                 <span className="text-xs font-bold text-slate-600">Total payable (INR):</span>
-                <span className="text-xl font-black text-indigo-600">₹{priceToPay}</span>
+                <span className="text-xl font-black text-indigo-650 flex flex-col items-end">
+                  {appliedCoupon && (
+                    <span className="text-xs line-through text-slate-400 font-bold">₹{getPlanBasePrice(selectedPlan)}</span>
+                  )}
+                  <span>₹{priceToPay}</span>
+                </span>
               </div>
             </div>
 

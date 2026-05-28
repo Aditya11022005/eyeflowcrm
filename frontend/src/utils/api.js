@@ -10,7 +10,7 @@ const api = axios.create({
 // Interceptor for JWT injection
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('eyeflow_token');
+    const token = localStorage.getItem('eyelitz_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -30,8 +30,8 @@ api.interceptors.response.use(
       
       // JWT token expired or invalid
       if (status === 401) {
-        localStorage.removeItem('eyeflow_token');
-        localStorage.removeItem('eyeflow_user');
+        localStorage.removeItem('eyelitz_token');
+        localStorage.removeItem('eyelitz_user');
         // Prevent looping redirect if already on login or public sharing pages
         if (!window.location.pathname.includes('/login') && 
             !window.location.pathname.includes('/invoices/') && 

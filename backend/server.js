@@ -17,10 +17,12 @@ import reportRoutes from './routes/reportRoutes.js';
 import superadminRoutes from './routes/superadminRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import marketingRoutes from './routes/marketingRoutes.js';
+import publicRoutes from './routes/publicRoutes.js';
 import { startMarketingScheduler } from './utils/marketingScheduler.js';
 
 // Models for seed
 import User from './models/User.js';
+import { seedStores } from './utils/seedStores.js';
 
 dotenv.config();
 
@@ -28,20 +30,23 @@ dotenv.config();
 connectDB().then(async () => {
   // Seed Super Admin if not exists
   try {
-    const adminEmail = 'admin@eyeflow.com';
+    const adminEmail = 'admin@eyelitz.com';
     const adminExists = await User.findOne({ email: adminEmail });
     if (!adminExists) {
       await User.create({
-        name: 'EyeFlow Super Admin',
+        name: 'Eyelitz Super Admin',
         email: adminEmail,
         password: 'adminpassword123',
         role: 'superadmin',
         active: true,
       });
-      console.log('Seeded platform Super Admin (admin@eyeflow.com / adminpassword123)');
+      console.log('Seeded platform Super Admin (admin@eyelitz.com / adminpassword123)');
     }
+    
+    // Seed 10 mock stores and owners
+    await seedStores();
   } catch (err) {
-    console.error('Superadmin Seeding Error:', err);
+    console.error('Seeding Error:', err);
   }
 });
 
@@ -76,12 +81,13 @@ app.use('/api/appointments', appointmentRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/superadmin', superadminRoutes);
+app.use('/api/public', publicRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/marketing', marketingRoutes);
 
 // Base Route
 app.get('/', (req, res) => {
-  res.json({ message: 'EyeFlow CRM Multi-Tenant API is running...' });
+  res.json({ message: 'Eyelitz CRM Multi-Tenant API is running...' });
 });
 
 // Error handling middleware

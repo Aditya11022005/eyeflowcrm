@@ -56,7 +56,7 @@ const LoginPage = () => {
             <Eye className="w-6 h-6" />
           </div>
           <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-white dark:via-slate-100 dark:to-white">
-            Welcome to EyeFlow
+            Welcome to Eyelitz
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5">Sign in to your clinic work suite</p>
         </div>

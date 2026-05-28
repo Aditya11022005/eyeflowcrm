@@ -39,7 +39,7 @@ const DashboardLayout = () => {
           <div className="bg-gradient-to-r from-rose-500 to-red-600 text-white py-2 px-6 flex flex-wrap items-center justify-between gap-3 text-sm font-semibold z-40 shadow-lg">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 animate-bounce" />
-              <span>Your EyeFlow subscription has expired. Clinic services are locked until subscription is renewed.</span>
+              <span>Your Eyelitz subscription has expired. Clinic services are locked until subscription is renewed.</span>
             </div>
             {user.role === 'owner' ? (
               <button 

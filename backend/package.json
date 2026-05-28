@@ -1,5 +1,5 @@
 {
-  "name": "eyeflow-crm-backend",
+  "name": "eyelitz-crm-backend",
   "version": "1.0.0",
   "description": "Multi-tenant Eye Clinic SaaS CRM Backend",
   "main": "server.js",

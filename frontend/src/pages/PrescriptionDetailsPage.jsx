@@ -183,8 +183,8 @@ const PrescriptionDetailsPage = () => {
 
         {/* Footer print disclaimer */}
         <div className="border-t border-slate-150 pt-6 mt-12 text-center text-[10px] text-slate-455 font-medium space-y-1">
-          <p>This prescription is electronically generated and managed via <strong>EyeFlow CRM</strong>.</p>
-          <p>Please consult your optometrist if you experience strain or headaches. Support: <span className="text-clinic-600 font-semibold">billing@eyeflow.com</span></p>
+          <p>This prescription is electronically generated and managed via <strong>Eyelitz CRM</strong>.</p>
+          <p>Please consult your optometrist if you experience strain or headaches. Support: <span className="text-clinic-600 font-semibold">billing@eyelitz.com</span></p>
         </div>
       </div>
     </div>

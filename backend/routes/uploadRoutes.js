@@ -12,7 +12,7 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max file size
 });
 
-const uploadToCloudinary = (fileBuffer, folder = 'eyeflow') => {
+const uploadToCloudinary = (fileBuffer, folder = 'eyelitz') => {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
@@ -35,7 +35,7 @@ router.post('/', protect, upload.single('file'), async (req, res) => {
     }
 
     // Determine folder path: optionally namespace it with the tenant's store ID for security/scoping
-    const folder = `eyeflow/${req.storeId || 'general'}`;
+    const folder = `eyelitz/${req.storeId || 'general'}`;
     const result = await uploadToCloudinary(req.file.buffer, folder);
 
     res.status(200).json({

@@ -1,5 +1,5 @@
 import express from 'express';
-import { getInvoices, createCustomInvoice, subscribePlan, getInvoiceById, getPublicInvoiceById } from '../controllers/billingController.js';
+import { getInvoices, createCustomInvoice, subscribePlan, getInvoiceById, getPublicInvoiceById, validateCoupon } from '../controllers/billingController.js';
 import { protect } from '../middleware/auth.js';
 import { checkRole } from '../middleware/role.js';
 import { checkSubscription } from '../middleware/subscription.js';
@@ -13,6 +13,7 @@ router.use(protect);
 
 // Allow plan registration even if current subscription expired
 router.post('/subscribe', checkRole('owner'), subscribePlan);
+router.post('/validate-coupon', checkRole('owner'), validateCoupon);
 
 // Normal invoices require active subscription
 router.route('/invoices')

@@ -33,7 +33,7 @@ export const checkSubscription = async (req, res, next) => {
       return res.status(403).json({
         success: false,
         isSubscriptionExpired: true,
-        message: 'Your EyeFlow CRM subscription has expired. Please update your billing details to continue using the service.',
+        message: 'Your Eyelitz CRM subscription has expired. Please update your billing details to continue using the service.',
       });
     }
 

@@ -40,7 +40,7 @@ const InvoiceDetailsPage = () => {
     const patient = invoice.patientId;
     const invoiceLink = window.location.origin + "/invoices/" + invoice._id;
 
-    const message = `*INVOICE RECEIPT - ${(clinic.name || 'EYEFLOW').toUpperCase()}*
+    const message = `*INVOICE RECEIPT - ${(clinic.name || 'EYELITZ').toUpperCase()}*
 --------------------------
 *Invoice No:* ${invoice.invoiceNumber}
 *Date:* ${new Date(invoice.createdAt).toLocaleDateString()}
@@ -213,8 +213,8 @@ Thank you for choosing ${clinic.name || 'us'}!`;
 
         {/* Footer print disclaimer */}
         <div className="border-t border-slate-150 pt-6 mt-12 text-center text-[10px] text-slate-450 font-medium space-y-1">
-          <p>This invoice is electronically generated and managed via <strong>EyeFlow CRM</strong>.</p>
-          <p>For platform inquiries, contact provider at <span className="text-clinic-600 font-semibold">billing@eyeflow.com</span></p>
+          <p>This invoice is electronically generated and managed via <strong>Eyelitz CRM</strong>.</p>
+          <p>For platform inquiries, contact provider at <span className="text-clinic-600 font-semibold">billing@eyelitz.com</span></p>
           <p className="text-[9px] text-slate-350 mt-1">Payment Method: {invoice.paymentMethod?.toUpperCase()} | Status: {invoice.status?.toUpperCase()}</p>
         </div>
       </div>

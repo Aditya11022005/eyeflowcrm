@@ -4,7 +4,7 @@ import Store from '../models/Store.js';
 
 // Generate Token
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'eyeflow_jwt_secret_key_123456', {
+  return jwt.sign({ id }, process.env.JWT_SECRET || 'eyelitz_jwt_secret_key_123456', {
     expiresIn: '30d',
   });
 };

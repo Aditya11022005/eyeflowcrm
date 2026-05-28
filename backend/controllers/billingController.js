@@ -1,6 +1,9 @@
 import Invoice from '../models/Invoice.js';
 import Store from '../models/Store.js';
 import Patient from '../models/Patient.js';
+import Coupon from '../models/Coupon.js';
+import Package from '../models/Package.js';
+
 
 // @desc    Get all store invoices
 // @route   GET /api/billing/invoices
@@ -106,25 +109,66 @@ export const createCustomInvoice = async (req, res) => {
 // @route   POST /api/billing/subscribe
 // @access  Private (Owner only)
 export const subscribePlan = async (req, res) => {
-  const { planType, razorpayPaymentId } = req.body;
+  const { planType, packageId, razorpayPaymentId, couponCode } = req.body;
 
   try {
-    if (!['monthly', 'yearly'].includes(planType)) {
-      return res.status(400).json({ success: false, message: 'Invalid subscription plan selected' });
-    }
-
     const store = await Store.findById(req.storeId);
     if (!store) {
       return res.status(404).json({ success: false, message: 'Store not found' });
     }
 
+    let finalAmount = 299;
+    let billingCycle = 'month';
+    let planName = 'monthly';
+
+    if (packageId) {
+      const pkg = await Package.findById(packageId);
+      if (!pkg) {
+        return res.status(404).json({ success: false, message: 'Selected package plan not found' });
+      }
+      finalAmount = pkg.price;
+      billingCycle = pkg.billingCycle;
+      planName = pkg.billingCycle === 'month' ? 'monthly' : 'yearly';
+    } else {
+      if (!['monthly', 'yearly'].includes(planType)) {
+        return res.status(400).json({ success: false, message: 'Invalid subscription plan selected' });
+      }
+      const pkg = await Package.findOne({ billingCycle: planType === 'monthly' ? 'month' : 'year', active: true });
+      if (pkg) {
+        finalAmount = pkg.price;
+        billingCycle = pkg.billingCycle;
+        planName = pkg.billingCycle === 'month' ? 'monthly' : 'yearly';
+      } else {
+        finalAmount = planType === 'monthly' ? 299 : 3399;
+        billingCycle = planType === 'monthly' ? 'month' : 'year';
+        planName = planType;
+      }
+    }
+
+    // Process Coupon if provided
+    if (couponCode) {
+      const coupon = await Coupon.findOne({ code: couponCode.toUpperCase(), active: true });
+      if (coupon) {
+        const isExpired = coupon.expiryDate && new Date(coupon.expiryDate) < new Date();
+        if (!isExpired) {
+          let discount = 0;
+          if (coupon.discountType === 'percentage') {
+            discount = Math.round((finalAmount * coupon.discountValue) / 100);
+          } else {
+            discount = coupon.discountValue;
+          }
+          finalAmount = Math.max(0, finalAmount - discount);
+        }
+      }
+    }
+
     // Set expiration length
-    const daysToAdd = planType === 'monthly' ? 30 : 365;
+    const daysToAdd = billingCycle === 'month' ? 30 : 365;
     const endDate = new Date();
     endDate.setDate(endDate.getDate() + daysToAdd);
 
     // Simulated Razorpay transaction update
-    store.subscriptionPlan = planType;
+    store.subscriptionPlan = planName;
     store.subscriptionStatus = 'active';
     store.subscriptionEndDate = endDate;
     store.subscriptionId = razorpayPaymentId || `pay_sim_${Math.random().toString(36).substring(2, 10)}`;
@@ -133,7 +177,7 @@ export const subscribePlan = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Successfully upgraded to ${planType} subscription!`,
+      message: `Successfully upgraded to ${planName} subscription! Final price: ₹${finalAmount}`,
       store,
     });
   } catch (error) {
@@ -187,3 +231,65 @@ export const getPublicInvoiceById = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error retrieving invoice details' });
   }
 };
+
+// @desc    Validate a subscription coupon code
+// @route   POST /api/billing/validate-coupon
+// @access  Private (Owner only)
+export const validateCoupon = async (req, res) => {
+  const { code, planType, packageId } = req.body;
+
+  try {
+    if (!code) {
+      return res.status(400).json({ success: false, message: 'Please enter a coupon code' });
+    }
+
+    const coupon = await Coupon.findOne({ code: code.toUpperCase(), active: true });
+    if (!coupon) {
+      return res.status(400).json({ success: false, message: 'Invalid or inactive coupon code' });
+    }
+
+    if (coupon.expiryDate && new Date(coupon.expiryDate) < new Date()) {
+      return res.status(400).json({ success: false, message: 'Coupon code has expired' });
+    }
+
+    // Determine base price
+    let basePrice = 299;
+    if (packageId) {
+      const pkg = await Package.findById(packageId);
+      if (!pkg) {
+        return res.status(404).json({ success: false, message: 'Package plan not found' });
+      }
+      basePrice = pkg.price;
+    } else {
+      const pkg = await Package.findOne({ billingCycle: planType === 'monthly' ? 'month' : 'year', active: true });
+      if (pkg) {
+        basePrice = pkg.price;
+      } else {
+        basePrice = planType === 'monthly' ? 299 : 3399;
+      }
+    }
+
+    let discountAmount = 0;
+    if (coupon.discountType === 'percentage') {
+      discountAmount = Math.round((basePrice * coupon.discountValue) / 100);
+    } else {
+      discountAmount = coupon.discountValue;
+    }
+
+    const finalPrice = Math.max(0, basePrice - discountAmount);
+
+    res.json({
+      success: true,
+      code: coupon.code,
+      discountType: coupon.discountType,
+      discountValue: coupon.discountValue,
+      discountAmount,
+      finalPrice,
+    });
+  } catch (error) {
+    console.error('Validate Coupon Error:', error);
+    res.status(500).json({ success: false, message: 'Server error validating coupon' });
+  }
+};
+
+

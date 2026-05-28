@@ -1,4 +1,4 @@
-# EyeFlow CRM
+# Eyelitz CRM
 
 A modern, multi-tenant SaaS CRM platform for Eye Clinics, Optical Stores, and Eye Checkup Centers. Built using the MERN Stack (MongoDB, Express.js, React.js, Node.js) with Tailwind CSS, Redux Toolkit, and Recharts.
 
@@ -44,7 +44,7 @@ A modern, multi-tenant SaaS CRM platform for Eye Clinics, Optical Stores, and Ey
 
 ### 1. Platform Super Admin
 Use this to log in to the SaaS Command Panel to audit clinics and check subscriptions:
-- **Email:** `admin@eyeflow.com`
+- **Email:** `admin@eyelitz.com`
 - **Password:** `adminpassword123`
 
 ### 2. Clinic Stores
@@ -76,4 +76,4 @@ You can sign up a custom clinic store using the **Signup Page** onboarding flow.
    npm run dev
    ```
    *App boots on: `http://localhost:5173`*
-"# EyeflowCRM-" 
+"# EyelitzCRM-" 

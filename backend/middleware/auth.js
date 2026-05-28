@@ -13,7 +13,7 @@ export const protect = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
 
       // Verify token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'eyeflow_jwt_secret_key_123456');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'eyelitz_jwt_secret_key_123456');
 
       // Get user from the token, excluding password
       req.user = await User.findById(decoded.id).select('-password');

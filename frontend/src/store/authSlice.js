@@ -1,8 +1,8 @@
 import { createSlice } from '@reduxjs/toolkit';
 
-const token = localStorage.getItem('eyeflow_token');
-const user = JSON.parse(localStorage.getItem('eyeflow_user') || 'null');
-const storeInfo = JSON.parse(localStorage.getItem('eyeflow_store') || 'null');
+const token = localStorage.getItem('eyelitz_token');
+const user = JSON.parse(localStorage.getItem('eyelitz_user') || 'null');
+const storeInfo = JSON.parse(localStorage.getItem('eyelitz_store') || 'null');
 
 const initialState = {
   user,
@@ -29,10 +29,10 @@ const authSlice = createSlice({
       state.token = action.payload.token;
       state.error = null;
 
-      localStorage.setItem('eyeflow_token', action.payload.token);
-      localStorage.setItem('eyeflow_user', JSON.stringify(action.payload.user));
+      localStorage.setItem('eyelitz_token', action.payload.token);
+      localStorage.setItem('eyelitz_user', JSON.stringify(action.payload.user));
       if (action.payload.store) {
-        localStorage.setItem('eyeflow_store', JSON.stringify(action.payload.store));
+        localStorage.setItem('eyelitz_store', JSON.stringify(action.payload.store));
       }
     },
     authFailure: (state, action) => {
@@ -48,13 +48,13 @@ const authSlice = createSlice({
       state.loading = false;
       state.error = null;
 
-      localStorage.removeItem('eyeflow_token');
-      localStorage.removeItem('eyeflow_user');
-      localStorage.removeItem('eyeflow_store');
+      localStorage.removeItem('eyelitz_token');
+      localStorage.removeItem('eyelitz_user');
+      localStorage.removeItem('eyelitz_store');
     },
     updateStoreInfo: (state, action) => {
       state.store = action.payload;
-      localStorage.setItem('eyeflow_store', JSON.stringify(action.payload));
+      localStorage.setItem('eyelitz_store', JSON.stringify(action.payload));
     },
     clearError: (state) => {
       state.error = null;
