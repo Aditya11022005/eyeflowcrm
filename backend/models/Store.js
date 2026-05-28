@@ -61,8 +61,69 @@ const StoreSchema = new mongoose.Schema({
       return date;
     },
   },
-}, {
-  timestamps: true,
-});
+  
+  // Loyalty Points Configuration
+  loyaltyPointsEnabled: {
+    type: Boolean,
+    default: false,
+  },
+  pointsPerRupee: {
+    type: Number,
+    default: 0.1, // e.g. 0.1 points per 1 INR spent (10% back in points)
+  },
+  pointValueInRupees: {
+    type: Number,
+    default: 1.0, // e.g. 1 point = 1 INR
+  },
+
+  // Automated Marketing Campaigns Configuration
+  birthdayWishesEnabled: {
+    type: Boolean,
+    default: false,
+  },
+  birthdayTemplate: {
+    type: String,
+    default: "Wish you a very Happy Birthday [Patient Name]! Get 15% off on optical frames at [Clinic Name] today.",
+  },
+  
+  checkupRemindersEnabled: {
+    type: Boolean,
+    default: false,
+  },
+  checkupTemplate: {
+    type: String,
+    default: "Hello [Patient Name], it has been a year since your last eye checkup. Keep your eyes healthy and schedule a visit today at [Clinic Name].",
+  },
+  
+  googleReviewEnabled: {
+    type: Boolean,
+    default: false,
+  },
+  googleReviewLink: {
+    type: String,
+    default: "",
+  },
+    googleReviewTemplate: {
+      type: String,
+      default: "Thank you for visiting [Clinic Name], [Patient Name]! Please share your feedback on Google: [Review Link]",
+    },
+    
+    // WhatsApp API Gateway Settings (For 100% automatic background sending)
+    whatsappGatewayProvider: {
+      type: String,
+      enum: ['none', 'ultramsg'],
+      default: 'none',
+    },
+    whatsappGatewayInstanceId: {
+      type: String,
+      default: '',
+    },
+    whatsappGatewayToken: {
+      type: String,
+      default: '',
+    },
+  }, {
+    timestamps: true,
+  });
 
 export default mongoose.model('Store', StoreSchema);

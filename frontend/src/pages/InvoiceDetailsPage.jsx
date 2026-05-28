@@ -6,7 +6,7 @@ import api from '../utils/api.js';
 
 const InvoiceDetailsPage = () => {
   const { id } = useParams();
-  const { store } = useSelector((state) => state.auth);
+  const { user, store } = useSelector((state) => state.auth);
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -14,7 +14,7 @@ const InvoiceDetailsPage = () => {
   useEffect(() => {
     const fetchInvoice = async () => {
       try {
-        const res = await api.get(`/billing/invoices/${id}`);
+        const res = await api.get(`/billing/public/invoices/${id}`);
         if (res.data.success) {
           setInvoice(res.data.invoice);
         }
@@ -32,34 +32,25 @@ const InvoiceDetailsPage = () => {
     window.print();
   };
 
+  const clinic = (invoice?.storeId && typeof invoice.storeId === 'object') ? invoice.storeId : (store || {});
+
   const handleWhatsAppSend = () => {
     if (!invoice || !invoice.patientId) return;
 
     const patient = invoice.patientId;
-    const itemsText = invoice.items
-      .map(item => `- ${item.description} (Qty: ${item.quantity}) - ₹${item.total}`)
-      .join('\n');
+    const invoiceLink = window.location.origin + "/invoices/" + invoice._id;
 
-    const message = `*INVOICE RECEIPT - EYEFLOW*
+    const message = `*INVOICE RECEIPT - ${(clinic.name || 'EYEFLOW').toUpperCase()}*
 --------------------------
-*Clinic:* ${invoice.storeId?.name || 'Eye Care Center'}
 *Invoice No:* ${invoice.invoiceNumber}
 *Date:* ${new Date(invoice.createdAt).toLocaleDateString()}
+*Patient Name:* ${patient.name}
+*Total Amount:* ₹${invoice.totalAmount}
 
-*Customer Name:* ${patient.name}
-*Fulfillment Status:* ${invoice.status.toUpperCase()}
-*Payment Method:* ${invoice.paymentMethod.toUpperCase()}
+तुमचे बिल पाहण्यासाठी आणि PDF डाऊनलोड करण्यासाठी खालील लिंकवर क्लिक करा:
+${invoiceLink}
 
-*Line Items:*
-${itemsText}
-
---------------------------
-*Subtotal:* ₹${invoice.subtotal}
-*Discount:* -₹${invoice.discount}
-*Taxes:* +₹${invoice.tax}
-*Total Paid:* *₹${invoice.totalAmount}*
-
-Thank you for choosing us for your optical and vision needs!`;
+Thank you for choosing ${clinic.name || 'us'}!`;
 
     // Clean phone number: keep only digits
     let phoneNum = patient.phone.replace(/\D/g, '');
@@ -84,27 +75,32 @@ Thank you for choosing us for your optical and vision needs!`;
   }
 
   const patient = invoice.patientId;
-  const clinic = (invoice.storeId && typeof invoice.storeId === 'object') ? invoice.storeId : (store || {});
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Action Row (hides when printing) */}
       <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 no-print">
-        <Link 
-          to="/billing"
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Billing
-        </Link>
-        <div className="flex gap-2.5">
-          <button
-            onClick={handleWhatsAppSend}
-            className="px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-bold shadow-md shadow-emerald-600/10 hover:bg-emerald-700 transition-colors flex items-center gap-2 cursor-pointer text-xs"
+        {user ? (
+          <Link 
+            to="/billing"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
           >
-            <Send className="w-4 h-4" />
-            Send via WhatsApp
-          </button>
+            <ArrowLeft className="w-4 h-4" />
+            Back to Billing
+          </Link>
+        ) : (
+          <div />
+        )}
+        <div className="flex gap-2.5">
+          {user && (
+            <button
+              onClick={handleWhatsAppSend}
+              className="px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-bold shadow-md shadow-emerald-600/10 hover:bg-emerald-700 transition-colors flex items-center gap-2 cursor-pointer text-xs"
+            >
+              <Send className="w-4 h-4" />
+              Send via WhatsApp
+            </button>
+          )}
           <button
             onClick={handlePrint}
             className="px-4 py-2.5 bg-clinic-500 text-white rounded-xl font-bold shadow-md shadow-clinic-500/10 hover:bg-clinic-600 transition-colors flex items-center gap-2 cursor-pointer text-xs"

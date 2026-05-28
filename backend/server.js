@@ -15,6 +15,9 @@ import appointmentRoutes from './routes/appointmentRoutes.js';
 import billingRoutes from './routes/billingRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import superadminRoutes from './routes/superadminRoutes.js';
+import uploadRoutes from './routes/uploadRoutes.js';
+import marketingRoutes from './routes/marketingRoutes.js';
+import { startMarketingScheduler } from './utils/marketingScheduler.js';
 
 // Models for seed
 import User from './models/User.js';
@@ -73,6 +76,8 @@ app.use('/api/appointments', appointmentRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/superadmin', superadminRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/api/marketing', marketingRoutes);
 
 // Base Route
 app.get('/', (req, res) => {
@@ -91,4 +96,6 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+  // Start automated marketing background scheduler
+  startMarketingScheduler();
 });

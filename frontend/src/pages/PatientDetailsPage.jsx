@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   User, Phone, Mail, MapPin, Eye, ClipboardList, Glasses, 
-  CalendarPlus, CreditCard, ChevronRight, ArrowLeft, Trash2 
+  CalendarPlus, CreditCard, ChevronRight, ArrowLeft, Trash2,
+  FileText, UploadCloud, Download, ExternalLink, Loader2, Coins
 } from 'lucide-react';
 import api from '../utils/api.js';
 
@@ -14,6 +15,75 @@ const PatientDetailsPage = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Attachments State
+  const [fileToUpload, setFileToUpload] = useState(null);
+  const [attachmentName, setAttachmentName] = useState('');
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+
+  const handleUploadAttachment = async (e) => {
+    e.preventDefault();
+    if (!fileToUpload) {
+      setUploadError('Please select a file to upload');
+      return;
+    }
+
+    setUploadingAttachment(true);
+    setUploadError('');
+
+    const formData = new FormData();
+    formData.append('file', fileToUpload);
+
+    try {
+      // 1. Upload to Cloudinary
+      const uploadRes = await api.post('/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (uploadRes.data.success) {
+        const fileUrl = uploadRes.data.url;
+        const nameToSave = attachmentName.trim() || fileToUpload.name;
+        
+        // 2. Add to Patient model
+        const res = await api.post(`/patients/${id}/attachments`, {
+          name: nameToSave,
+          url: fileUrl,
+          fileType: fileToUpload.type,
+        });
+
+        if (res.data.success) {
+          setPatient(res.data.patient);
+          setFileToUpload(null);
+          setAttachmentName('');
+          // Reset file input
+          const fileInput = document.getElementById('patient-file-input');
+          if (fileInput) fileInput.value = '';
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      setUploadError(err.response?.data?.message || 'Error uploading file to cloud.');
+    } finally {
+      setUploadingAttachment(false);
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentId) => {
+    if (!window.confirm('Are you sure you want to delete this document/invoice?')) return;
+
+    try {
+      const res = await api.delete(`/patients/${id}/attachments/${attachmentId}`);
+      if (res.data.success) {
+        setPatient(res.data.patient);
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Failed to delete attachment.');
+    }
+  };
 
   useEffect(() => {
     const fetchPatientDetails = async () => {
@@ -112,6 +182,10 @@ const PatientDetailsPage = () => {
             <div className="flex items-center gap-2.5 text-slate-650 dark:text-slate-350">
               <User className="w-4 h-4 text-slate-400" />
               <span>DOB: {patient.dob ? `${new Date(patient.dob).toLocaleDateString()} (${age} yrs)` : 'N/A'}</span>
+            </div>
+            <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400">
+              <Coins className="w-4.5 h-4.5 text-amber-500" />
+              <span className="font-bold">Loyalty Balance: {patient.loyaltyPoints || 0} pts</span>
             </div>
           </div>
 
@@ -248,6 +322,119 @@ const PatientDetailsPage = () => {
                 </table>
               </div>
             )}
+          </div>
+
+          {/* Medical Scans, Invoices & Attachments (Stored on Cloudinary) */}
+          <div className="p-6 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-darkbg-100 shadow-sm space-y-6">
+            <h3 className="text-sm font-bold text-slate-850 dark:text-slate-250 flex items-center gap-2">
+              <FileText className="w-4 h-4 text-slate-400" />
+              Patient Documents, Scans & External Invoices
+            </h3>
+
+            {/* List existing files */}
+            {(!patient.attachments || patient.attachments.length === 0) ? (
+              <p className="text-xs text-slate-400 py-6 text-center bg-slate-50 dark:bg-slate-900/20 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800/80">
+                No attachments uploaded. Keep reports, invoices, or eye scan images here.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {patient.attachments.map((att) => (
+                  <div key={att._id} className="p-3 rounded-2xl border border-slate-150 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 flex items-center justify-between gap-3 group hover:border-slate-300 dark:hover:border-slate-700 transition-all">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <div className="w-8 h-8 rounded-xl bg-clinic-500/10 text-clinic-600 flex items-center justify-center shrink-0">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <div className="overflow-hidden">
+                        <span className="font-bold text-xs text-slate-750 dark:text-slate-200 block truncate" title={att.name}>
+                          {att.name}
+                        </span>
+                        <span className="text-[10px] text-slate-400 block">
+                          {new Date(att.uploadedAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <a 
+                        href={att.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="p-1.5 text-slate-400 hover:text-clinic-600 hover:bg-clinic-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                        title="View Document"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                      <button
+                        onClick={() => handleDeleteAttachment(att._id)}
+                        className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg transition-colors"
+                        title="Delete Document"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Upload form */}
+            <form onSubmit={handleUploadAttachment} className="p-4 rounded-2xl border border-slate-150 dark:border-slate-850/60 bg-slate-50/30 dark:bg-slate-900/10 space-y-4">
+              <span className="block text-[10px] font-bold uppercase text-slate-400 tracking-wider">
+                Upload New Document / Image / Invoice
+              </span>
+
+              {uploadError && (
+                <div className="p-2.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-xl text-[11px] font-semibold">
+                  {uploadError}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Document Name / Description
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Left Eye OCT Scan, External Bill"
+                    value={attachmentName}
+                    onChange={(e) => setAttachmentName(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent focus:ring-2 focus:ring-clinic-500 text-xs dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Select File
+                  </label>
+                  <input
+                    id="patient-file-input"
+                    type="file"
+                    required
+                    onChange={(e) => setFileToUpload(e.target.files[0])}
+                    className="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[11px] file:font-semibold file:bg-clinic-50 file:text-clinic-700 hover:file:bg-clinic-100 dark:file:bg-slate-800 dark:file:text-white cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button
+                  type="submit"
+                  disabled={uploadingAttachment}
+                  className="px-4 py-2 bg-clinic-500 text-white rounded-xl font-bold shadow-md shadow-clinic-500/10 hover:bg-clinic-600 transition-colors text-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {uploadingAttachment ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Uploading File...
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud className="w-3.5 h-3.5" />
+                      Upload to Cloud
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>

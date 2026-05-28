@@ -32,8 +32,10 @@ api.interceptors.response.use(
       if (status === 401) {
         localStorage.removeItem('eyeflow_token');
         localStorage.removeItem('eyeflow_user');
-        // Prevent looping redirect if already on login page
-        if (!window.location.pathname.includes('/login')) {
+        // Prevent looping redirect if already on login or public sharing pages
+        if (!window.location.pathname.includes('/login') && 
+            !window.location.pathname.includes('/invoices/') && 
+            !window.location.pathname.includes('/prescriptions/')) {
           window.location.href = '/login?expired=true';
         }
       }

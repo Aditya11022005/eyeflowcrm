@@ -155,3 +155,53 @@ export const deletePatient = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error deleting patient' });
   }
 };
+
+// @desc    Add attachment to patient
+// @route   POST /api/patients/:id/attachments
+// @access  Private
+export const addPatientAttachment = async (req, res) => {
+  const { name, url, fileType } = req.body;
+  try {
+    const patient = await Patient.findOne({ _id: req.params.id, storeId: req.storeId });
+    if (!patient) {
+      return res.status(404).json({ success: false, message: 'Patient not found' });
+    }
+
+    patient.attachments.push({ name, url, fileType });
+    await patient.save();
+
+    res.json({
+      success: true,
+      patient,
+    });
+  } catch (error) {
+    console.error('Add Attachment Error:', error);
+    res.status(500).json({ success: false, message: 'Server error adding attachment' });
+  }
+};
+
+// @desc    Delete attachment from patient
+// @route   DELETE /api/patients/:id/attachments/:attachmentId
+// @access  Private
+export const deletePatientAttachment = async (req, res) => {
+  try {
+    const patient = await Patient.findOne({ _id: req.params.id, storeId: req.storeId });
+    if (!patient) {
+      return res.status(404).json({ success: false, message: 'Patient not found' });
+    }
+
+    patient.attachments = patient.attachments.filter(
+      (att) => att._id.toString() !== req.params.attachmentId
+    );
+    await patient.save();
+
+    res.json({
+      success: true,
+      patient,
+    });
+  } catch (error) {
+    console.error('Delete Attachment Error:', error);
+    res.status(500).json({ success: false, message: 'Server error deleting attachment' });
+  }
+};
+

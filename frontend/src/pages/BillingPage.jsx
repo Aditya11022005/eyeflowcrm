@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { 
   Receipt, CreditCard, Sparkles, AlertTriangle, ArrowRight, 
-  ShieldCheck, Check, Loader2, Plus, Trash, X 
+  ShieldCheck, Check, Loader2, Plus, Trash, X, Coins 
 } from 'lucide-react';
 import api from '../utils/api.js';
 import { updateStoreInfo } from '../store/authSlice.js';
@@ -31,6 +31,14 @@ const BillingPage = () => {
   const [invoiceStatus, setInvoiceStatus] = useState('paid');
   const [invoiceError, setInvoiceError] = useState('');
   const [generatingInvoice, setGeneratingInvoice] = useState(false);
+
+  // Loyalty states
+  const [redeemPoints, setRedeemPoints] = useState('0');
+  const [selectedPatientPoints, setSelectedPatientPoints] = useState(0);
+
+  // Inventory Auto-suggest states
+  const [inventoryItemsList, setInventoryItemsList] = useState([]);
+  const [activeRowIdx, setActiveRowIdx] = useState(null);
 
   const fetchInvoices = async () => {
     try {
@@ -64,6 +72,23 @@ const BillingPage = () => {
     loadPatientsOptions();
   }, []);
 
+  // Fetch inventory for item suggestions
+  useEffect(() => {
+    if (showInvoiceModal) {
+      const loadInventoryOptions = async () => {
+        try {
+          const res = await api.get('/inventory?limit=1000');
+          if (res.data.success) {
+            setInventoryItemsList(res.data.inventory || []);
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      };
+      loadInventoryOptions();
+    }
+  }, [showInvoiceModal]);
+
   const handleAddItemRow = () => {
     setInvoiceItems([...invoiceItems, { description: '', quantity: 1, price: 0 }]);
   };
@@ -78,6 +103,15 @@ const BillingPage = () => {
     setInvoiceItems(newItems);
   };
 
+  const filteredSuggestions = (searchText) => {
+    if (!searchText || !searchText.trim()) return [];
+    return inventoryItemsList.filter(item => 
+      item.name.toLowerCase().includes(searchText.toLowerCase()) ||
+      (item.brand && item.brand.toLowerCase().includes(searchText.toLowerCase())) ||
+      (item.sku && item.sku.toLowerCase().includes(searchText.toLowerCase()))
+    ).slice(0, 5); // Limit to top 5 matches
+  };
+
   const calculateInvoiceSubtotal = () => {
     return invoiceItems.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.price)), 0);
   };
@@ -85,8 +119,9 @@ const BillingPage = () => {
   const calculateInvoiceTotal = () => {
     const sub = calculateInvoiceSubtotal();
     const disc = Number(discount) || 0;
+    const pointsDisc = (store?.loyaltyPointsEnabled ? Number(redeemPoints) : 0) * (store?.pointValueInRupees || 1.0);
     const tx = Number(tax) || 0;
-    return Math.max(0, sub - disc + tx);
+    return Math.max(0, sub - disc - pointsDisc + tx);
   };
 
   const handleCreateCustomInvoice = async (e) => {
@@ -108,6 +143,7 @@ const BillingPage = () => {
         patientId: selectedPatientId,
         items: invoiceItems,
         discount: Number(discount),
+        redeemPoints: store?.loyaltyPointsEnabled ? Number(redeemPoints) : 0,
         tax: Number(tax),
         paymentMethod,
         status: invoiceStatus,
@@ -119,6 +155,8 @@ const BillingPage = () => {
         setSelectedPatientId('');
         setInvoiceItems([{ description: '', quantity: 1, price: 0 }]);
         setDiscount('0');
+        setRedeemPoints('0');
+        setSelectedPatientPoints(0);
         setTax('0');
         setPaymentMethod('cash');
         setInvoiceStatus('paid');
@@ -135,30 +173,19 @@ const BillingPage = () => {
     if (!invoice || !invoice.patientId) return;
 
     const patient = invoice.patientId;
-    const itemsText = invoice.items
-      .map(item => `- ${item.description} (Qty: ${item.quantity}) - ₹${item.total}`)
-      .join('\n');
+    const invoiceLink = window.location.origin + "/invoices/" + invoice._id;
 
-    const message = `*INVOICE RECEIPT - EYEFLOW*
+    const message = `*INVOICE RECEIPT - ${(store?.name || 'EYEFLOW').toUpperCase()}*
 --------------------------
-*Clinic:* ${store?.name || 'Eye Care Center'}
 *Invoice No:* ${invoice.invoiceNumber}
 *Date:* ${new Date(invoice.createdAt).toLocaleDateString()}
+*Patient Name:* ${patient.name}
+*Total Amount:* ₹${invoice.totalAmount}
 
-*Customer Name:* ${patient.name}
-*Fulfillment Status:* ${invoice.status.toUpperCase()}
-*Payment Method:* ${invoice.paymentMethod.toUpperCase()}
+तुमचे बिल पाहण्यासाठी आणि PDF डाऊनलोड करण्यासाठी खालील लिंकवर क्लिक करा:
+${invoiceLink}
 
-*Line Items:*
-${itemsText}
-
---------------------------
-*Subtotal:* ₹${invoice.subtotal}
-*Discount:* -₹${invoice.discount}
-*Taxes:* +₹${invoice.tax}
-*Total Paid:* *₹${invoice.totalAmount}*
-
-Thank you for choosing us for your optical and vision needs!`;
+Thank you for choosing ${store?.name || 'us'}!`;
 
     // Clean phone number: keep only digits
     let phoneNum = patient.phone.replace(/\D/g, '');
@@ -438,7 +465,13 @@ Thank you for choosing us for your optical and vision needs!`;
                   required
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent focus:ring-2 focus:ring-clinic-500 dark:text-white dark:bg-darkbg-100 font-bold"
                   value={selectedPatientId}
-                  onChange={(e) => setSelectedPatientId(e.target.value)}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    setSelectedPatientId(id);
+                    const selected = patients.find(p => p._id === id);
+                    setSelectedPatientPoints(selected ? (selected.loyaltyPoints || 0) : 0);
+                    setRedeemPoints('0');
+                  }}
                 >
                   <option value="">-- Choose Patient --</option>
                   {patients.map(p => (
@@ -463,7 +496,7 @@ Thank you for choosing us for your optical and vision needs!`;
                 <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
                   {invoiceItems.map((item, idx) => (
                     <div key={idx} className="flex gap-3 items-end">
-                      <div className="flex-1">
+                      <div className="flex-1 relative">
                         {idx === 0 && <label className="block text-[9px] font-bold text-slate-400 mb-1">Description</label>}
                         <input
                           type="text"
@@ -472,7 +505,38 @@ Thank you for choosing us for your optical and vision needs!`;
                           className="w-full px-3 py-2 border border-slate-200 dark:border-slate-800 bg-transparent rounded-lg text-xs dark:text-white"
                           value={item.description}
                           onChange={(e) => handleItemChange(idx, 'description', e.target.value)}
+                          onFocus={() => setActiveRowIdx(idx)}
+                          onBlur={() => setTimeout(() => setActiveRowIdx(null), 250)}
                         />
+                        {activeRowIdx === idx && filteredSuggestions(item.description).length > 0 && (
+                          <div className="absolute left-0 right-0 z-50 mt-1 bg-white dark:bg-darkbg-100 border border-slate-200 dark:border-slate-850 rounded-xl shadow-xl max-h-40 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                            {filteredSuggestions(item.description).map((sug) => (
+                              <button
+                                key={sug._id}
+                                type="button"
+                                className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors text-xs flex justify-between items-center"
+                                onClick={() => {
+                                  const newItems = [...invoiceItems];
+                                  newItems[idx].description = sug.name;
+                                  newItems[idx].price = sug.sellingPrice;
+                                  setInvoiceItems(newItems);
+                                  setActiveRowIdx(null);
+                                }}
+                              >
+                                <div>
+                                  <span className="font-bold text-slate-800 dark:text-slate-200 block">{sug.name}</span>
+                                  {sug.brand && <span className="text-[10px] text-slate-450 block">{sug.brand}</span>}
+                                </div>
+                                <div className="text-right">
+                                  <span className="font-black text-clinic-600 dark:text-clinic-400 block">₹{sug.sellingPrice}</span>
+                                  <span className={`text-[9px] font-bold ${sug.quantity <= sug.minStockAlert ? 'text-rose-500' : 'text-slate-400'}`}>
+                                    Stock: {sug.quantity}
+                                  </span>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div className="w-16">
                         {idx === 0 && <label className="block text-[9px] font-bold text-slate-400 mb-1">Qty</label>}
@@ -535,6 +599,32 @@ Thank you for choosing us for your optical and vision needs!`;
                     </div>
                   </div>
 
+                  {store?.loyaltyPointsEnabled && selectedPatientPoints > 0 && (
+                    <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-2 animate-fadeIn">
+                      <div className="flex justify-between items-center text-[10px]">
+                        <span className="font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1">
+                          <Coins className="w-3.5 h-3.5" />
+                          Loyalty Balance: {selectedPatientPoints} pts
+                        </span>
+                        <span className="text-slate-500 text-[9px]">(1 pt = ₹{store?.pointValueInRupees || 1})</span>
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <label className="text-[9px] font-bold text-slate-500 uppercase shrink-0">Redeem Points:</label>
+                        <input
+                          type="number"
+                          max={selectedPatientPoints}
+                          min="0"
+                          className="w-full px-2.5 py-1 border border-slate-200 dark:border-slate-800 bg-white dark:bg-darkbg-100 rounded-lg text-xs dark:text-white font-bold"
+                          value={redeemPoints}
+                          onChange={(e) => {
+                            const val = Math.min(Number(e.target.value), selectedPatientPoints);
+                            setRedeemPoints(isNaN(val) ? '0' : String(val));
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     <div>
                       <label className="block text-[9px] font-bold text-slate-400 mb-1">Payment Method</label>
@@ -570,6 +660,12 @@ Thank you for choosing us for your optical and vision needs!`;
                     <span className="block text-[10px] font-bold uppercase text-slate-400">Total Calculation</span>
                     <div className="flex justify-between"><span>Subtotal:</span> <span>₹{calculateInvoiceSubtotal()}</span></div>
                     <div className="flex justify-between"><span>Discount:</span> <span className="text-rose-500">-₹{discount}</span></div>
+                    {store?.loyaltyPointsEnabled && Number(redeemPoints) > 0 && (
+                      <div className="flex justify-between text-amber-600 dark:text-amber-450 font-bold">
+                        <span>Points Discount:</span> 
+                        <span>-₹{Number(redeemPoints) * (store?.pointValueInRupees || 1)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between"><span>Taxation:</span> <span>+₹{tax}</span></div>
                   </div>
                   <div className="border-t border-slate-200 dark:border-slate-800 pt-2 mt-2 flex justify-between font-black text-sm text-slate-800 dark:text-white">

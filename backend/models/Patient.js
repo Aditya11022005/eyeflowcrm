@@ -43,6 +43,20 @@ const PatientSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  loyaltyPoints: {
+    type: Number,
+    default: 0,
+  },
+  anniversaryDate: {
+    type: Date,
+    default: null,
+  },
+  attachments: [{
+    name: { type: String, required: true },
+    url: { type: String, required: true },
+    fileType: { type: String },
+    uploadedAt: { type: Date, default: Date.now },
+  }],
 }, {
   timestamps: true,
 });

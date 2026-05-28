@@ -26,6 +26,7 @@ const SettingsPage = () => {
   const [storeMsg, setStoreMsg] = useState('');
   const [profileError, setProfileError] = useState('');
   const [storeError, setStoreError] = useState('');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
@@ -56,18 +57,37 @@ const SettingsPage = () => {
     }
   };
 
-  const handleLogoChange = (e) => {
+  const handleLogoChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 1024 * 1024) {
-        setStoreError('Logo file size must be less than 1MB.');
+      if (file.size > 5 * 1024 * 1024) {
+        setStoreError('Logo file size must be less than 5MB.');
         return;
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setClinicLogo(reader.result);
-      };
-      reader.readAsDataURL(file);
+      
+      setUploadingLogo(true);
+      setStoreError('');
+      setStoreMsg('');
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const res = await api.post('/upload', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        if (res.data.success) {
+          setClinicLogo(res.data.url);
+          setStoreMsg('Logo uploaded to cloud storage successfully!');
+        }
+      } catch (err) {
+        console.error(err);
+        setStoreError(err.response?.data?.message || 'Error uploading logo to cloud storage.');
+      } finally {
+        setUploadingLogo(false);
+      }
     }
   };
 
@@ -206,7 +226,9 @@ const SettingsPage = () => {
 
             <div className="flex items-center gap-4 py-2">
               <div className="w-16 h-16 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center overflow-hidden bg-slate-50 dark:bg-slate-900/60 relative group">
-                {clinicLogo ? (
+                {uploadingLogo ? (
+                  <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
+                ) : clinicLogo ? (
                   <img src={clinicLogo} alt="Clinic Logo" className="w-full h-full object-contain" />
                 ) : (
                   <Building className="w-6 h-6 text-slate-400 dark:text-slate-500" />

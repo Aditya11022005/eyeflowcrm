@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { 
   LayoutDashboard, Users, Calendar, Eye, 
-  Glasses, Package, Receipt, Shield, LogOut, Settings 
+  Glasses, Package, Receipt, Shield, LogOut, Settings, Megaphone
 } from 'lucide-react';
 
 const Sidebar = ({ isMobileOpen, onClose, onLogout }) => {
@@ -66,6 +66,12 @@ const Sidebar = ({ isMobileOpen, onClose, onLogout }) => {
         path: '/billing',
         name: 'Billing & Invoices',
         icon: <Receipt className="w-5 h-5" />,
+      });
+
+      menuItems.push({
+        path: '/marketing',
+        name: 'Marketing Engine',
+        icon: <Megaphone className="w-5 h-5" />,
       });
     }
 

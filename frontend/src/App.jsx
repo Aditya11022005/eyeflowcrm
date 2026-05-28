@@ -16,6 +16,7 @@ import AppointmentsPage from './pages/AppointmentsPage.jsx';
 import AdminDashboardPage from './pages/AdminDashboardPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
 import InvoiceDetailsPage from './pages/InvoiceDetailsPage.jsx';
+import MarketingPage from './pages/MarketingPage.jsx';
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
+      <Route path="/invoices/:id" element={<InvoiceDetailsPage />} />
 
       {/* Protected SaaS App routes */}
       <Route element={<DashboardLayout />}>
@@ -35,9 +37,9 @@ function App() {
         <Route path="/orders" element={<OrdersPage />} />
         <Route path="/inventory" element={<InventoryPage />} />
         <Route path="/billing" element={<BillingPage />} />
-        <Route path="/invoices/:id" element={<InvoiceDetailsPage />} />
         <Route path="/appointments" element={<AppointmentsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/marketing" element={<MarketingPage />} />
         
         {/* Superadmin Panel */}
         <Route path="/admin" element={<AdminDashboardPage />} />

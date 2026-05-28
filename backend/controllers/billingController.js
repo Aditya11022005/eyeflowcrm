@@ -25,12 +25,17 @@ export const getInvoices = async (req, res) => {
 // @route   POST /api/billing/invoices
 // @access  Private
 export const createCustomInvoice = async (req, res) => {
-  const { patientId, items, discount, tax, paymentMethod, status } = req.body;
+  const { patientId, items, discount, tax, paymentMethod, status, redeemPoints } = req.body;
 
   try {
     const patient = await Patient.findOne({ _id: patientId, storeId: req.storeId });
     if (!patient) {
       return res.status(404).json({ success: false, message: 'Patient not found' });
+    }
+
+    const store = await Store.findById(req.storeId);
+    if (!store) {
+      return res.status(404).json({ success: false, message: 'Store not found' });
     }
 
     let subtotal = 0;
@@ -47,7 +52,27 @@ export const createCustomInvoice = async (req, res) => {
 
     const discountAmt = Number(discount) || 0;
     const taxAmt = Number(tax) || 0;
-    const totalAmount = Math.max(0, subtotal - discountAmt + taxAmt);
+
+    // Handle Loyalty Points Redemption
+    let pointsRedeemed = 0;
+    let pointsDiscount = 0;
+    if (store.loyaltyPointsEnabled && redeemPoints && Number(redeemPoints) > 0) {
+      const pointsToRedeem = Math.min(Number(redeemPoints), patient.loyaltyPoints || 0);
+      pointsRedeemed = pointsToRedeem;
+      pointsDiscount = pointsToRedeem * (store.pointValueInRupees || 1.0);
+      patient.loyaltyPoints = Math.max(0, (patient.loyaltyPoints || 0) - pointsToRedeem);
+    }
+
+    const totalAmount = Math.max(0, subtotal - discountAmt - pointsDiscount + taxAmt);
+
+    // Handle Loyalty Points Earning
+    let pointsEarned = 0;
+    if (store.loyaltyPointsEnabled && totalAmount > 0) {
+      pointsEarned = Math.floor(totalAmount * (store.pointsPerRupee || 0.1));
+      patient.loyaltyPoints = (patient.loyaltyPoints || 0) + pointsEarned;
+    }
+
+    await patient.save();
 
     const invoiceNumber = `INV-${new Date().toISOString().slice(2,10).replace(/-/g, "")}-${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -58,6 +83,8 @@ export const createCustomInvoice = async (req, res) => {
       items: invoiceItems,
       subtotal,
       discount: discountAmt,
+      pointsRedeemed,
+      pointsEarned,
       tax: taxAmt,
       totalAmount,
       paymentMethod,
@@ -134,6 +161,29 @@ export const getInvoiceById = async (req, res) => {
     });
   } catch (error) {
     console.error('Get Invoice Error:', error);
+    res.status(500).json({ success: false, message: 'Server error retrieving invoice details' });
+  }
+};
+
+// @desc    Get single invoice by ID (Public, unauthenticated)
+// @route   GET /api/billing/public/invoices/:id
+// @access  Public
+export const getPublicInvoiceById = async (req, res) => {
+  try {
+    const invoice = await Invoice.findById(req.params.id)
+      .populate('patientId', 'name phone email address')
+      .populate('storeId');
+
+    if (!invoice) {
+      return res.status(404).json({ success: false, message: 'Invoice not found' });
+    }
+
+    res.json({
+      success: true,
+      invoice,
+    });
+  } catch (error) {
+    console.error('Get Public Invoice Error:', error);
     res.status(500).json({ success: false, message: 'Server error retrieving invoice details' });
   }
 };

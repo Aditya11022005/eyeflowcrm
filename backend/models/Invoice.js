@@ -35,6 +35,14 @@ const InvoiceSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  pointsRedeemed: {
+    type: Number,
+    default: 0,
+  },
+  pointsEarned: {
+    type: Number,
+    default: 0,
+  },
   tax: {
     type: Number,
     default: 0,
