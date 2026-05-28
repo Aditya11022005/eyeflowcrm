@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { Eye, ShieldAlert, Loader2 } from 'lucide-react';
+import { ShieldAlert, Loader2 } from 'lucide-react';
 import { authStart, authSuccess, authFailure, clearError } from '../store/authSlice.js';
 import api from '../utils/api.js';
+import eyelitzLogo from '../assets/eyelitz_logo.png';
 
 const SignupPage = () => {
   const [storeName, setStoreName] = useState('');
@@ -66,9 +67,7 @@ const SignupPage = () => {
 
       <div className="w-full max-w-lg p-8 rounded-3xl border border-slate-200 dark:border-slate-850 bg-white/80 dark:bg-darkbg-100/80 backdrop-blur-md shadow-2xl">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-clinic-500 to-cyan-400 text-white shadow-lg shadow-clinic-500/20 mb-4">
-            <Eye className="w-6 h-6" />
-          </div>
+          <img src={eyelitzLogo} alt="Eyelitz Logo" className="w-24 h-24 mx-auto object-contain mb-4" />
           <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-white dark:via-slate-100 dark:to-white">
             Register your Clinic / Store
           </h2>
