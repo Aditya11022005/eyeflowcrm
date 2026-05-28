@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Users, Calendar, Eye, 
   Glasses, Package, Receipt, Shield, LogOut, Settings, Megaphone
 } from 'lucide-react';
-import eyelitzLogo from '../assets/eyelitz_logo.svg';
+import eyelitzLogo from '../assets/eyelitz_logo.png';
 
 const Sidebar = ({ isMobileOpen, onClose, onLogout }) => {
   const { user } = useSelector((state) => state.auth);

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Eye, Shield, Users, Activity, CheckCircle, Sparkles, ArrowRight, Zap, Award, FileText, Star, Quote } from 'lucide-react';
 import api from '../utils/api.js';
-import eyelitzLogo from '../assets/eyelitz_logo.svg';
+import eyelitzLogo from '../assets/eyelitz_logo.png';
 
 const LandingPage = () => {
   const [packages, setPackages] = useState([
