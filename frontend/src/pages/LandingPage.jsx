@@ -96,7 +96,7 @@ const LandingPage = () => {
           </h1>
           
           <p className="mt-6 text-lg text-slate-500 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
-            Eyelitz CRM is the premium MERN-stack multi-tenant platform for patient medical files, visual acuity prescriptions, stock counts, invoicing, and laboratory order tracking.
+            Eyelitz CRM is the premium multi-tenant platform for patient medical files, visual acuity prescriptions, stock counts, invoicing, and laboratory order tracking.
           </p>
 
           <div className="mt-10 flex items-center justify-center gap-4 flex-wrap">
