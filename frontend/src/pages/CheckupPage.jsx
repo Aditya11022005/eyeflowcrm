@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Eye, ShieldAlert, Sparkles, ClipboardCheck } from 'lucide-react';
+import { useSelector } from 'react-redux';
+import { Eye, ShieldAlert, Sparkles, ClipboardCheck, Receipt } from 'lucide-react';
 import api from '../utils/api.js';
 
 const CheckupPage = () => {
+  const { store } = useSelector((state) => state.auth);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const patientIdFromQuery = searchParams.get('patientId') || '';
@@ -34,6 +36,18 @@ const CheckupPage = () => {
   const [doctorSignature, setDoctorSignature] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Billing states
+  const [generateBill, setGenerateBill] = useState(false);
+  const [checkupFee, setCheckupFee] = useState(store?.eyeCheckupFee || 100);
+  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [paymentStatus, setPaymentStatus] = useState('paid');
+
+  useEffect(() => {
+    if (store?.eyeCheckupFee) {
+      setCheckupFee(store.eyeCheckupFee);
+    }
+  }, [store]);
 
   // AI suggestion indicator
   const [aiGenerating, setAiGenerating] = useState(false);
@@ -117,7 +131,36 @@ const CheckupPage = () => {
       });
 
       if (res.data.success) {
-        navigate(`/patients/${selectedPatientId}`);
+        let invoiceId = null;
+        if (generateBill && Number(checkupFee) > 0) {
+          try {
+            const invoiceRes = await api.post('/billing/invoices', {
+              patientId: selectedPatientId,
+              items: [{
+                description: 'Eye Checkup Fee',
+                quantity: 1,
+                price: Number(checkupFee),
+              }],
+              discount: 0,
+              tax: 0,
+              paymentMethod,
+              status: paymentStatus,
+              terms: store?.invoiceTerms || '',
+            });
+            if (invoiceRes.data.success) {
+              invoiceId = invoiceRes.data.invoice._id;
+            }
+          } catch (billingErr) {
+            console.error('Error generating eye checkup invoice:', billingErr);
+            alert('Prescription saved, but failed to generate the invoice: ' + (billingErr.response?.data?.message || billingErr.message));
+          }
+        }
+
+        if (invoiceId) {
+          navigate(`/invoices/${invoiceId}`);
+        } else {
+          navigate(`/patients/${selectedPatientId}`);
+        }
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Error saving prescription file.');
@@ -300,6 +343,64 @@ const CheckupPage = () => {
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
             />
+          </div>
+
+          {/* Eye Checkup Billing Section */}
+          <div className="border-t border-slate-100 dark:border-slate-800 pt-4 space-y-4">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="generateBill"
+                className="w-4.5 h-4.5 rounded border-slate-350 dark:border-slate-800 text-clinic-600 focus:ring-clinic-500 cursor-pointer"
+                checked={generateBill}
+                onChange={(e) => setGenerateBill(e.target.checked)}
+              />
+              <label htmlFor="generateBill" className="text-xs font-bold text-slate-800 dark:text-slate-200 cursor-pointer flex items-center gap-1.5">
+                <Receipt className="w-4 h-4 text-clinic-500" />
+                Generate Eye Checkup Bill / Invoice
+              </label>
+            </div>
+
+            {generateBill && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-slate-100 dark:border-slate-850 animate-fadeIn">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-400 mb-1.5">Checkup Fee (₹)</label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    className="w-full px-4 py-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-darkbg-100 rounded-xl text-xs dark:text-white font-bold animate-fadeIn"
+                    value={checkupFee}
+                    onChange={(e) => setCheckupFee(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-400 mb-1.5">Payment Method</label>
+                  <select
+                    className="w-full px-4 py-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-darkbg-100 rounded-xl text-xs dark:text-white"
+                    value={paymentMethod}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                  >
+                    <option value="cash">Cash</option>
+                    <option value="card">Card</option>
+                    <option value="upi">UPI / Scanner</option>
+                    <option value="net-banking">Net Banking</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-400 mb-1.5">Payment Status</label>
+                  <select
+                    className="w-full px-4 py-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-darkbg-100 rounded-xl text-xs dark:text-white font-bold"
+                    value={paymentStatus}
+                    onChange={(e) => setPaymentStatus(e.target.value)}
+                  >
+                    <option value="paid">Paid</option>
+                    <option value="unpaid">Unpaid</option>
+                  </select>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">

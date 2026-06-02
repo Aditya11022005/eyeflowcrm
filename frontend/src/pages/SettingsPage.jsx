@@ -19,6 +19,8 @@ const SettingsPage = () => {
   const [clinicPhone, setClinicPhone] = useState(store?.phone || '');
   const [clinicAddress, setClinicAddress] = useState(store?.address || '');
   const [clinicLogo, setClinicLogo] = useState(store?.logo || '');
+  const [eyeCheckupFee, setEyeCheckupFee] = useState(store?.eyeCheckupFee || 100);
+  const [invoiceTerms, setInvoiceTerms] = useState(store?.invoiceTerms || 'Thank you for your purchase. Optics frames support 1-year manufacturers warranties. Corrective lens scratches are not covered by warranty limits.');
 
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingStore, setSavingStore] = useState(false);
@@ -104,6 +106,8 @@ const SettingsPage = () => {
         phone: clinicPhone,
         address: clinicAddress,
         logo: clinicLogo,
+        eyeCheckupFee: Number(eyeCheckupFee),
+        invoiceTerms: invoiceTerms,
       });
 
       if (res.data.success) {
@@ -302,6 +306,29 @@ const SettingsPage = () => {
                 value={clinicAddress}
                 onChange={(e) => setClinicAddress(e.target.value)}
               />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 pt-2">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Default Eye Checkup Fee (₹)</label>
+                <input
+                  type="number"
+                  disabled={!isOwner}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent focus:ring-2 focus:ring-clinic-500 text-xs dark:text-white disabled:opacity-50"
+                  value={eyeCheckupFee}
+                  onChange={(e) => setEyeCheckupFee(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Default Invoice Terms & Remarks</label>
+                <textarea
+                  rows={3}
+                  disabled={!isOwner}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent focus:ring-2 focus:ring-clinic-500 text-xs dark:text-white disabled:opacity-50 text-sm font-medium"
+                  value={invoiceTerms}
+                  onChange={(e) => setInvoiceTerms(e.target.value)}
+                />
+              </div>
             </div>
 
             <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">

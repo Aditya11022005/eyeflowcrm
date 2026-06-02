@@ -122,6 +122,14 @@ const StoreSchema = new mongoose.Schema({
       type: String,
       default: '',
     },
+    eyeCheckupFee: {
+      type: Number,
+      default: 100,
+    },
+    invoiceTerms: {
+      type: String,
+      default: "Thank you for your purchase. Optics frames support 1-year manufacturers warranties. Corrective lens scratches are not covered by warranty limits.",
+    },
   }, {
     timestamps: true,
   });

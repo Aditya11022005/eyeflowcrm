@@ -28,7 +28,7 @@ export const getInvoices = async (req, res) => {
 // @route   POST /api/billing/invoices
 // @access  Private
 export const createCustomInvoice = async (req, res) => {
-  const { patientId, items, discount, tax, paymentMethod, status, redeemPoints } = req.body;
+  const { patientId, items, discount, tax, paymentMethod, status, redeemPoints, terms } = req.body;
 
   try {
     const patient = await Patient.findOne({ _id: patientId, storeId: req.storeId });
@@ -92,6 +92,7 @@ export const createCustomInvoice = async (req, res) => {
       totalAmount,
       paymentMethod,
       status,
+      terms: terms !== undefined ? terms : (store.invoiceTerms || ''),
       paymentDate: status === 'paid' ? new Date() : null,
     });
 
@@ -289,6 +290,41 @@ export const validateCoupon = async (req, res) => {
   } catch (error) {
     console.error('Validate Coupon Error:', error);
     res.status(500).json({ success: false, message: 'Server error validating coupon' });
+  }
+};
+
+// @desc    Update invoice details (e.g., terms)
+// @route   PUT /api/billing/invoices/:id
+// @access  Private
+export const updateInvoice = async (req, res) => {
+  const { terms, status, paymentMethod } = req.body;
+
+  try {
+    const invoice = await Invoice.findOne({ _id: req.params.id, storeId: req.storeId });
+
+    if (!invoice) {
+      return res.status(404).json({ success: false, message: 'Invoice not found' });
+    }
+
+    if (terms !== undefined) invoice.terms = terms;
+    if (status !== undefined) {
+      invoice.status = status;
+      if (status === 'paid' && !invoice.paymentDate) {
+        invoice.paymentDate = new Date();
+      }
+    }
+    if (paymentMethod !== undefined) invoice.paymentMethod = paymentMethod;
+
+    await invoice.save();
+
+    res.json({
+      success: true,
+      message: 'Invoice updated successfully',
+      invoice,
+    });
+  } catch (error) {
+    console.error('Update Invoice Error:', error);
+    res.status(500).json({ success: false, message: 'Server error updating invoice details' });
   }
 };
 

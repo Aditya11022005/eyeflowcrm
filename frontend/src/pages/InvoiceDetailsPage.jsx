@@ -10,6 +10,9 @@ const InvoiceDetailsPage = () => {
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isEditingTerms, setIsEditingTerms] = useState(false);
+  const [tempTerms, setTempTerms] = useState('');
+  const [updatingTerms, setUpdatingTerms] = useState(false);
 
   useEffect(() => {
     const fetchInvoice = async () => {
@@ -17,6 +20,7 @@ const InvoiceDetailsPage = () => {
         const res = await api.get(`/billing/public/invoices/${id}`);
         if (res.data.success) {
           setInvoice(res.data.invoice);
+          setTempTerms(res.data.invoice.terms || '');
         }
       } catch (err) {
         console.error(err);
@@ -30,6 +34,22 @@ const InvoiceDetailsPage = () => {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleSaveTerms = async () => {
+    setUpdatingTerms(true);
+    try {
+      const res = await api.put(`/billing/invoices/${id}`, { terms: tempTerms });
+      if (res.data.success) {
+        setInvoice({ ...invoice, terms: tempTerms });
+        setIsEditingTerms(false);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error updating terms & conditions.');
+    } finally {
+      setUpdatingTerms(false);
+    }
   };
 
   const clinic = (invoice?.storeId && typeof invoice.storeId === 'object') ? invoice.storeId : (store || {});
@@ -185,10 +205,52 @@ Thank you for choosing ${clinic.name || 'us'}!`;
         {/* Price Summary adjustments */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-6 border-t border-slate-200 text-xs">
           <div className="md:col-span-2 space-y-2">
-            <span className="text-[9px] text-slate-400 font-bold uppercase block">Invoice Terms & Remarks</span>
-            <p className="text-slate-600 leading-relaxed font-medium bg-slate-50 p-4 rounded-xl border border-slate-100">
-              Thank you for your purchase. Optics frames support 1-year manufacturers warranties. Corrective lens scratches are not covered by warranty limits.
-            </p>
+            <div className="flex justify-between items-center">
+              <span className="text-[9px] text-slate-400 font-bold uppercase block">Invoice Terms & Remarks</span>
+              {user && !isEditingTerms && (
+                <button
+                  onClick={() => setIsEditingTerms(true)}
+                  className="text-[10px] text-clinic-600 hover:text-clinic-700 font-bold hover:underline no-print cursor-pointer bg-transparent border-0 outline-none"
+                >
+                  Edit Terms
+                </button>
+              )}
+            </div>
+            
+            {isEditingTerms ? (
+              <div className="space-y-2 no-print">
+                <textarea
+                  className="w-full p-3 border border-slate-200 rounded-xl text-xs font-medium bg-slate-50 text-slate-900"
+                  rows={4}
+                  value={tempTerms}
+                  onChange={(e) => setTempTerms(e.target.value)}
+                  placeholder="Enter invoice-specific terms..."
+                />
+                <div className="flex gap-2 justify-end">
+                  <button
+                    onClick={() => {
+                      setTempTerms(invoice.terms || '');
+                      setIsEditingTerms(false);
+                    }}
+                    disabled={updatingTerms}
+                    className="px-3 py-1.5 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-500 hover:bg-slate-100 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveTerms}
+                    disabled={updatingTerms}
+                    className="px-3 py-1.5 bg-clinic-500 text-white rounded-lg text-[10px] font-bold hover:bg-clinic-600 cursor-pointer"
+                  >
+                    {updatingTerms ? 'Saving...' : 'Save Terms'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-slate-600 leading-relaxed font-medium bg-slate-50 p-4 rounded-xl border border-slate-100 whitespace-pre-line">
+                {invoice.terms || clinic.invoiceTerms || "Thank you for your purchase. Optics frames support 1-year manufacturers warranties. Corrective lens scratches are not covered by warranty limits."}
+              </p>
+            )}
           </div>
           
           <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2">

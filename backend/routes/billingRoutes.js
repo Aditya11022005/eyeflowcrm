@@ -1,5 +1,5 @@
 import express from 'express';
-import { getInvoices, createCustomInvoice, subscribePlan, getInvoiceById, getPublicInvoiceById, validateCoupon } from '../controllers/billingController.js';
+import { getInvoices, createCustomInvoice, subscribePlan, getInvoiceById, getPublicInvoiceById, validateCoupon, updateInvoice } from '../controllers/billingController.js';
 import { protect } from '../middleware/auth.js';
 import { checkRole } from '../middleware/role.js';
 import { checkSubscription } from '../middleware/subscription.js';
@@ -21,6 +21,7 @@ router.route('/invoices')
   .post(checkSubscription, checkRole('owner', 'staff'), createCustomInvoice);
 
 router.route('/invoices/:id')
-  .get(checkSubscription, getInvoiceById);
+  .get(checkSubscription, getInvoiceById)
+  .put(checkSubscription, updateInvoice);
 
 export default router;

@@ -230,7 +230,7 @@ export const updateProfile = async (req, res) => {
 // @route   PUT /api/auth/store
 // @access  Private (Owner only)
 export const updateStore = async (req, res) => {
-  const { name, phone, email, address, logo } = req.body;
+  const { name, phone, email, address, logo, eyeCheckupFee, invoiceTerms } = req.body;
   try {
     if (!req.storeId) {
       return res.status(400).json({ success: false, message: 'No store associated with this user' });
@@ -246,6 +246,8 @@ export const updateStore = async (req, res) => {
     if (email) store.email = email;
     if (address !== undefined) store.address = address;
     if (logo !== undefined) store.logo = logo;
+    if (eyeCheckupFee !== undefined) store.eyeCheckupFee = Number(eyeCheckupFee) || 0;
+    if (invoiceTerms !== undefined) store.invoiceTerms = invoiceTerms;
 
     await store.save();
 

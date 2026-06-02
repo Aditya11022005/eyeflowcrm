@@ -32,6 +32,7 @@ const BillingPage = () => {
 
   // Custom Invoice Modal states
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [invoiceTermsEdit, setInvoiceTermsEdit] = useState('');
   const [patients, setPatients] = useState([]);
   const [selectedPatientId, setSelectedPatientId] = useState('');
   const [invoiceItems, setInvoiceItems] = useState([{ description: '', quantity: 1, price: 0 }]);
@@ -98,6 +99,7 @@ const BillingPage = () => {
   // Fetch inventory for item suggestions
   useEffect(() => {
     if (showInvoiceModal) {
+      setInvoiceTermsEdit(store?.invoiceTerms || '');
       const loadInventoryOptions = async () => {
         try {
           const res = await api.get('/inventory?limit=1000');
@@ -110,7 +112,7 @@ const BillingPage = () => {
       };
       loadInventoryOptions();
     }
-  }, [showInvoiceModal]);
+  }, [showInvoiceModal, store]);
 
   const handleAddItemRow = () => {
     setInvoiceItems([...invoiceItems, { description: '', quantity: 1, price: 0 }]);
@@ -170,6 +172,7 @@ const BillingPage = () => {
         tax: Number(tax),
         paymentMethod,
         status: invoiceStatus,
+        terms: invoiceTermsEdit,
       });
 
       if (res.data.success) {
@@ -627,13 +630,32 @@ Thank you for choosing ${store?.name || 'us'}!`;
               <div className="border-t border-slate-100 dark:border-slate-800 pt-4">
                 <div className="flex justify-between items-center mb-3">
                   <h4 className="font-bold text-clinic-600">Line Items List</h4>
-                  <button
-                    type="button"
-                    onClick={handleAddItemRow}
-                    className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-lg text-[10px] font-bold"
-                  >
-                    + Add Item Row
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const fee = store?.eyeCheckupFee || 100;
+                        const exists = invoiceItems.some(item => item.description === 'Eye Checkup Fee');
+                        if (!exists) {
+                          if (invoiceItems.length === 1 && !invoiceItems[0].description && Number(invoiceItems[0].price) === 0) {
+                            setInvoiceItems([{ description: 'Eye Checkup Fee', quantity: 1, price: fee }]);
+                          } else {
+                            setInvoiceItems([...invoiceItems, { description: 'Eye Checkup Fee', quantity: 1, price: fee }]);
+                          }
+                        }
+                      }}
+                      className="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded-lg text-[10px] font-bold cursor-pointer"
+                    >
+                      + Eye Checkup (₹{store?.eyeCheckupFee || 100})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAddItemRow}
+                      className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-[10px] font-bold cursor-pointer"
+                    >
+                      + Add Item Row
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
@@ -815,6 +837,16 @@ Thank you for choosing ${store?.name || 'us'}!`;
                     <span>Total Amount:</span>
                     <span>₹{calculateInvoiceTotal()}</span>
                   </div>
+                </div>
+                <div className="mt-3">
+                  <label className="block text-[9px] font-bold text-slate-400 mb-1">Invoice Terms & Conditions (Editable)</label>
+                  <textarea
+                    rows={3}
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-800 bg-transparent rounded-lg text-xs dark:text-white font-medium"
+                    value={invoiceTermsEdit}
+                    onChange={(e) => setInvoiceTermsEdit(e.target.value)}
+                    placeholder="Invoice terms..."
+                  />
                 </div>
               </div>
 
