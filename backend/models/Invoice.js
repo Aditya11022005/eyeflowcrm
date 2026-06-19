@@ -70,6 +70,10 @@ const InvoiceSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  invoiceDate: {
+    type: Date,
+    default: Date.now,
+  },
 }, {
   timestamps: true,
 });

@@ -33,6 +33,7 @@ const OrdersPage = () => {
   const [amountPaid, setAmountPaid] = useState('0');
   const [promisedDate, setPromisedDate] = useState('');
   const [remarks, setRemarks] = useState('');
+  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
   const [submitError, setSubmitError] = useState('');
 
   const fetchOrders = async () => {
@@ -107,6 +108,7 @@ const OrdersPage = () => {
         amountPaid: Number(amountPaid),
         promisedDate: promisedDate || null,
         remarks,
+        invoiceDate,
       });
 
       if (res.data.success) {
@@ -125,6 +127,7 @@ const OrdersPage = () => {
         setAmountPaid('0');
         setPromisedDate('');
         setRemarks('');
+        setInvoiceDate(new Date().toISOString().split('T')[0]);
         fetchOrders();
       }
     } catch (err) {
@@ -432,6 +435,13 @@ const OrdersPage = () => {
                     <div>
                       <label className="block text-[9px] font-bold text-slate-400 mb-1">Promised Date</label>
                       <input type="date" className="w-full px-3 py-2 border border-slate-200 dark:border-slate-800 bg-transparent rounded-lg text-xs dark:text-white" value={promisedDate} onChange={(e) => setPromisedDate(e.target.value)} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 text-xs">
+                    <div>
+                      <label className="block text-[9px] font-bold text-slate-400 mb-1">Invoice / Order Date</label>
+                      <input type="date" className="w-full px-3 py-2 border border-slate-200 dark:border-slate-800 bg-transparent rounded-lg text-xs dark:text-white" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} />
                     </div>
                   </div>
                 </div>

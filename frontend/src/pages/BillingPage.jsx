@@ -40,6 +40,7 @@ const BillingPage = () => {
   const [tax, setTax] = useState('0');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [invoiceStatus, setInvoiceStatus] = useState('paid');
+  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
   const [invoiceError, setInvoiceError] = useState('');
   const [generatingInvoice, setGeneratingInvoice] = useState(false);
 
@@ -173,6 +174,7 @@ const BillingPage = () => {
         paymentMethod,
         status: invoiceStatus,
         terms: invoiceTermsEdit,
+        invoiceDate,
       });
 
       if (res.data.success) {
@@ -186,6 +188,7 @@ const BillingPage = () => {
         setTax('0');
         setPaymentMethod('cash');
         setInvoiceStatus('paid');
+        setInvoiceDate(new Date().toISOString().split('T')[0]);
         fetchInvoices();
       }
     } catch (err) {
@@ -204,7 +207,7 @@ const BillingPage = () => {
     const message = `*INVOICE RECEIPT - ${(store?.name || 'EYELITZ').toUpperCase()}*
 --------------------------
 *Invoice No:* ${invoice.invoiceNumber}
-*Date:* ${new Date(invoice.createdAt).toLocaleDateString()}
+*Date:* ${new Date(invoice.invoiceDate || invoice.createdAt).toLocaleDateString()}
 *Patient Name:* ${patient.name}
 *Total Amount:* ₹${invoice.totalAmount}
 
@@ -433,7 +436,7 @@ Thank you for choosing ${store?.name || 'us'}!`;
                   <tr key={inv._id} className="hover:bg-slate-55/10">
                     <td className="py-3">
                       <span className="font-bold text-slate-700 dark:text-slate-200 block">{inv.invoiceNumber}</span>
-                      <span className="text-[9px] text-slate-400">{new Date(inv.createdAt).toLocaleDateString()}</span>
+                      <span className="text-[9px] text-slate-400">{new Date(inv.invoiceDate || inv.createdAt).toLocaleDateString()}</span>
                     </td>
                     <td className="py-3 font-semibold">{inv.patientId?.name || 'Walk-in'}</td>
                     <td className="py-3 capitalize text-slate-500 font-medium">{inv.paymentMethod}</td>
@@ -604,26 +607,38 @@ Thank you for choosing ${store?.name || 'us'}!`;
             )}
 
             <form onSubmit={handleCreateCustomInvoice} className="space-y-4 text-xs">
-              {/* Patient Selector */}
-              <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1.5">Select Customer / Patient</label>
-                <select
-                  required
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent focus:ring-2 focus:ring-clinic-500 dark:text-white dark:bg-darkbg-100 font-bold"
-                  value={selectedPatientId}
-                  onChange={(e) => {
-                    const id = e.target.value;
-                    setSelectedPatientId(id);
-                    const selected = patients.find(p => p._id === id);
-                    setSelectedPatientPoints(selected ? (selected.loyaltyPoints || 0) : 0);
-                    setRedeemPoints('0');
-                  }}
-                >
-                  <option value="">-- Choose Patient --</option>
-                  {patients.map(p => (
-                    <option key={p._id} value={p._id}>{p.name} ({p.phone})</option>
-                  ))}
-                </select>
+              {/* Patient Selector & Date */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1.5">Select Customer / Patient</label>
+                  <select
+                    required
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent focus:ring-2 focus:ring-clinic-500 dark:text-white dark:bg-darkbg-100 font-bold"
+                    value={selectedPatientId}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      setSelectedPatientId(id);
+                      const selected = patients.find(p => p._id === id);
+                      setSelectedPatientPoints(selected ? (selected.loyaltyPoints || 0) : 0);
+                      setRedeemPoints('0');
+                    }}
+                  >
+                    <option value="">-- Choose Patient --</option>
+                    {patients.map(p => (
+                      <option key={p._id} value={p._id}>{p.name} ({p.phone})</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1.5">Invoice Date</label>
+                  <input
+                    type="date"
+                    required
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent focus:ring-2 focus:ring-clinic-500 dark:text-white dark:bg-darkbg-100 font-bold"
+                    value={invoiceDate}
+                    onChange={(e) => setInvoiceDate(e.target.value)}
+                  />
+                </div>
               </div>
 
               {/* Invoice Line Items */}

@@ -42,6 +42,7 @@ const CheckupPage = () => {
   const [checkupFee, setCheckupFee] = useState(store?.eyeCheckupFee || 100);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [paymentStatus, setPaymentStatus] = useState('paid');
+  const [checkupDate, setCheckupDate] = useState(new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     if (store?.eyeCheckupFee) {
@@ -128,6 +129,7 @@ const CheckupPage = () => {
         lensTypeRecommended,
         remarks,
         doctorSignature,
+        checkupDate,
       });
 
       if (res.data.success) {
@@ -146,6 +148,7 @@ const CheckupPage = () => {
               paymentMethod,
               status: paymentStatus,
               terms: store?.invoiceTerms || '',
+              invoiceDate: checkupDate,
             });
             if (invoiceRes.data.success) {
               invoiceId = invoiceRes.data.invoice._id;
@@ -185,25 +188,38 @@ const CheckupPage = () => {
       )}
 
       <form onSubmit={handleSave} className="space-y-6">
-        {/* Patient Selection Card */}
+        {/* Patient Selection & Checkup Date Card */}
         <div className="p-6 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-darkbg-100 space-y-4">
-          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-250">Patient Identification</h3>
+          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-250">Patient Identification & Checkup Date</h3>
           
           {loadingPatients ? (
             <p className="text-xs text-slate-400">Loading patients...</p>
           ) : (
-            <div className="max-w-md">
-              <select
-                required
-                className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-800 bg-transparent rounded-xl outline-none focus:ring-2 focus:ring-clinic-500 text-xs dark:text-white dark:bg-darkbg-100 font-bold"
-                value={selectedPatientId}
-                onChange={(e) => setSelectedPatientId(e.target.value)}
-              >
-                <option value="">-- Choose Patient File --</option>
-                {patients.map(p => (
-                  <option key={p._id} value={p._id}>{p.name} ({p.phone})</option>
-                ))}
-              </select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 mb-1.5">Choose Patient File</label>
+                <select
+                  required
+                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-800 bg-transparent rounded-xl outline-none focus:ring-2 focus:ring-clinic-500 text-xs dark:text-white dark:bg-darkbg-100 font-bold"
+                  value={selectedPatientId}
+                  onChange={(e) => setSelectedPatientId(e.target.value)}
+                >
+                  <option value="">-- Choose Patient File --</option>
+                  {patients.map(p => (
+                    <option key={p._id} value={p._id}>{p.name} ({p.phone})</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 mb-1.5">Checkup / Prescription Date</label>
+                <input
+                  type="date"
+                  required
+                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-800 bg-transparent rounded-xl outline-none focus:ring-2 focus:ring-clinic-500 text-xs dark:text-white dark:bg-darkbg-100 font-bold"
+                  value={checkupDate}
+                  onChange={(e) => setCheckupDate(e.target.value)}
+                />
+              </div>
             </div>
           )}
         </div>

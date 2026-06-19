@@ -28,7 +28,7 @@ export const getInvoices = async (req, res) => {
 // @route   POST /api/billing/invoices
 // @access  Private
 export const createCustomInvoice = async (req, res) => {
-  const { patientId, items, discount, tax, paymentMethod, status, redeemPoints, terms } = req.body;
+  const { patientId, items, discount, tax, paymentMethod, status, redeemPoints, terms, invoiceDate } = req.body;
 
   try {
     const patient = await Patient.findOne({ _id: patientId, storeId: req.storeId });
@@ -93,7 +93,8 @@ export const createCustomInvoice = async (req, res) => {
       paymentMethod,
       status,
       terms: terms !== undefined ? terms : (store.invoiceTerms || ''),
-      paymentDate: status === 'paid' ? new Date() : null,
+      paymentDate: status === 'paid' ? (invoiceDate ? new Date(invoiceDate) : new Date()) : null,
+      invoiceDate: invoiceDate ? new Date(invoiceDate) : new Date(),
     });
 
     res.status(201).json({

@@ -63,7 +63,7 @@ const InvoiceDetailsPage = () => {
     const message = `*INVOICE RECEIPT - ${(clinic.name || 'EYELITZ').toUpperCase()}*
 --------------------------
 *Invoice No:* ${invoice.invoiceNumber}
-*Date:* ${new Date(invoice.createdAt).toLocaleDateString()}
+*Date:* ${new Date(invoice.invoiceDate || invoice.createdAt).toLocaleDateString()}
 *Patient Name:* ${patient.name}
 *Total Amount:* ₹${invoice.totalAmount}
 
@@ -168,7 +168,7 @@ Thank you for choosing ${clinic.name || 'us'}!`;
           </div>
           <div>
             <span className="text-[9px] text-slate-400 font-bold uppercase block">Billing Date</span>
-            <span className="font-semibold text-slate-700">{new Date(invoice.createdAt).toLocaleDateString()}</span>
+            <span className="font-semibold text-slate-700">{new Date(invoice.invoiceDate || invoice.createdAt).toLocaleDateString()}</span>
           </div>
           <div>
             <span className="text-[9px] text-slate-400 font-bold uppercase block">Payment Status</span>

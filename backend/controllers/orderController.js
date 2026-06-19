@@ -57,7 +57,7 @@ export const getOrders = async (req, res) => {
 // @route   POST /api/orders
 // @access  Private (Owner/Staff)
 export const createOrder = async (req, res) => {
-  const { patientId, prescriptionId, frameDetails, lensDetails, discount, tax, amountPaid, promisedDate, remarks } = req.body;
+  const { patientId, prescriptionId, frameDetails, lensDetails, discount, tax, amountPaid, promisedDate, remarks, invoiceDate } = req.body;
 
   try {
     const patient = await Patient.findOne({ _id: patientId, storeId: req.storeId });
@@ -141,7 +141,8 @@ export const createOrder = async (req, res) => {
       totalAmount: finalAmount,
       paymentMethod: paid > 0 ? 'cash' : 'other', // fallback default
       status: paymentStatus === 'paid' ? 'paid' : 'unpaid',
-      paymentDate: paid > 0 ? new Date() : null,
+      paymentDate: paid > 0 ? (invoiceDate ? new Date(invoiceDate) : new Date()) : null,
+      invoiceDate: invoiceDate ? new Date(invoiceDate) : new Date(),
     });
 
     res.status(201).json({

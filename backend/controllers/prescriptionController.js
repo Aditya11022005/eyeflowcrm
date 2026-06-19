@@ -32,7 +32,7 @@ export const getPrescriptions = async (req, res) => {
 // @route   POST /api/prescriptions
 // @access  Private (Doctor or Owner)
 export const createPrescription = async (req, res) => {
-  const { patientId, rightEye, leftEye, lensTypeRecommended, remarks, doctorSignature } = req.body;
+  const { patientId, rightEye, leftEye, lensTypeRecommended, remarks, doctorSignature, checkupDate } = req.body;
 
   try {
     // Confirm patient exists under this tenant
@@ -50,6 +50,7 @@ export const createPrescription = async (req, res) => {
       lensTypeRecommended,
       remarks,
       doctorSignature: doctorSignature || req.user.name,
+      checkupDate: checkupDate ? new Date(checkupDate) : new Date(),
     });
 
     res.status(201).json({
