@@ -37,4 +37,8 @@ const AppointmentSchema = new mongoose.Schema({
   timestamps: true,
 });
 
+AppointmentSchema.index({ storeId: 1, appointmentDate: 1 });
+AppointmentSchema.index({ storeId: 1, patientId: 1 });
+AppointmentSchema.index({ storeId: 1, doctorId: 1 });
+
 export default mongoose.model('Appointment', AppointmentSchema);

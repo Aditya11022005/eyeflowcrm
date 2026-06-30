@@ -22,7 +22,7 @@ export const getInventory = async (req, res) => {
       ];
     }
 
-    const inventory = await Inventory.find(query).sort({ name: 1 });
+    const inventory = await Inventory.find(query).sort({ name: 1 }).lean();
 
     res.json({
       success: true,

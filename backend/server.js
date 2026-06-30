@@ -39,6 +39,7 @@ connectDB().then(async () => {
         password: 'adminpassword123',
         role: 'superadmin',
         active: true,
+        isVerified: true,
       });
       console.log('Seeded platform Super Admin (admin@eyelitz.com / adminpassword123)');
     }

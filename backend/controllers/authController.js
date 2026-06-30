@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import Store from '../models/Store.js';
+import { sendVerificationEmail, sendForgotPasswordEmail } from '../utils/emailService.js';
 
 // Generate Token
 const generateToken = (id) => {
@@ -37,6 +38,10 @@ export const registerStore = async (req, res) => {
       address,
     });
 
+    // Generate 6-digit OTP verification code
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
     // Create the Owner User
     const user = await User.create({
       storeId: store._id,
@@ -44,19 +49,19 @@ export const registerStore = async (req, res) => {
       email: email.toLowerCase(),
       password,
       role: 'owner',
+      isVerified: false,
+      verificationCode: otpCode,
+      verificationExpires: otpExpiry,
     });
+
+    // Send verification email
+    await sendVerificationEmail(user, otpCode);
 
     res.status(201).json({
       success: true,
-      token: generateToken(user._id),
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        storeId: user.storeId,
-      },
-      store,
+      message: 'Registration successful! A verification email has been sent to your registered address.',
+      needsVerification: true,
+      email: user.email,
     });
   } catch (error) {
     console.error('Signup Error:', error);
@@ -86,6 +91,16 @@ export const loginUser = async (req, res) => {
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
+    }
+
+    // Check if user is verified
+    if (!user.isVerified) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your email address is not verified. Please verify your email to log in.',
+        needsVerification: true,
+        email: user.email,
+      });
     }
 
     // Load store info if user has a store
@@ -157,6 +172,7 @@ export const addStaff = async (req, res) => {
       password,
       role,
       phone,
+      isVerified: true, // Staff accounts are verified automatically by their clinic owner
     });
 
     res.status(201).json({
@@ -259,5 +275,192 @@ export const updateStore = async (req, res) => {
   } catch (error) {
     console.error('Update Store Error:', error);
     res.status(500).json({ success: false, message: 'Server error updating store settings' });
+  }
+};
+
+// @desc    Verify User Email via 6-digit OTP code or direct link
+// @route   POST /api/auth/verify-email
+// @access  Public
+export const verifyEmail = async (req, res) => {
+  const { email, code } = req.body;
+
+  try {
+    if (!email || !code) {
+      return res.status(400).json({ success: false, message: 'Email and verification code are required' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ success: false, message: 'Email is already verified' });
+    }
+
+    if (user.verificationCode !== code) {
+      return res.status(400).json({ success: false, message: 'Invalid verification code' });
+    }
+
+    if (new Date(user.verificationExpires) < new Date()) {
+      return res.status(400).json({ success: false, message: 'Verification code has expired. Please request a new one.' });
+    }
+
+    // Mark as verified
+    user.isVerified = true;
+    user.verificationCode = null;
+    user.verificationExpires = null;
+    await user.save();
+
+    // Fetch store info
+    let store = null;
+    if (user.storeId) {
+      store = await Store.findById(user.storeId);
+    }
+
+    res.json({
+      success: true,
+      message: 'Email verified successfully!',
+      token: generateToken(user._id),
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        storeId: user.storeId,
+      },
+      store,
+    });
+  } catch (error) {
+    console.error('Verify Email Error:', error);
+    res.status(500).json({ success: false, message: 'Server error verifying email' });
+  }
+};
+
+// @desc    Resend Email Verification Code
+// @route   POST /api/auth/resend-verification
+// @access  Public
+export const resendVerification = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email address is required' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ success: false, message: 'Email is already verified' });
+    }
+
+    // Generate new OTP
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    user.verificationCode = otpCode;
+    user.verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    await user.save();
+
+    // Send verification email
+    await sendVerificationEmail(user, otpCode);
+
+    res.json({
+      success: true,
+      message: 'A new verification email has been sent to your registered address.',
+    });
+  } catch (error) {
+    console.error('Resend Verification Error:', error);
+    res.status(500).json({ success: false, message: 'Server error sending verification code' });
+  }
+};
+
+// @desc    Forgot Password - request verification code
+// @route   POST /api/auth/forgot-password
+// @access  Public
+export const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email address is required' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      // Don't leak registered emails, but say sent if the flow succeeds
+      return res.json({
+        success: true,
+        message: 'If the email is registered on our system, a password reset link has been sent.',
+      });
+    }
+
+    // Generate 6-digit reset OTP code
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+    user.passwordResetCode = resetCode;
+    user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    await user.save();
+
+    // Send password reset email
+    await sendForgotPasswordEmail(user, resetCode);
+
+    res.json({
+      success: true,
+      message: 'If the email is registered on our system, a password reset link has been sent.',
+    });
+  } catch (error) {
+    console.error('Forgot Password Error:', error);
+    res.status(500).json({ success: false, message: 'Server error processing password recovery' });
+  }
+};
+
+// @desc    Reset Password using Code
+// @route   POST /api/auth/reset-password
+// @access  Public
+export const resetPassword = async (req, res) => {
+  const { email, code, newPassword } = req.body;
+
+  try {
+    if (!email || !code || !newPassword) {
+      return res.status(400).json({ success: false, message: 'All fields (email, code, new password) are required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.passwordResetCode !== code) {
+      return res.status(400).json({ success: false, message: 'Invalid reset code' });
+    }
+
+    if (new Date(user.passwordResetExpires) < new Date()) {
+      return res.status(400).json({ success: false, message: 'Reset code has expired. Please request a new code.' });
+    }
+
+    // Update password
+    user.password = newPassword;
+    user.passwordResetCode = null;
+    user.passwordResetExpires = null;
+    
+    // Auto-verify if they were somehow unverified
+    if (!user.isVerified) {
+      user.isVerified = true;
+    }
+    
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Password reset successfully! You can now log in with your new password.',
+    });
+  } catch (error) {
+    console.error('Reset Password Error:', error);
+    res.status(500).json({ success: false, message: 'Server error resetting password' });
   }
 };

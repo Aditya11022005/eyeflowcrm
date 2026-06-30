@@ -61,6 +61,18 @@ const StoreSchema = new mongoose.Schema({
       return date;
     },
   },
+  warningSent7Days: {
+    type: Boolean,
+    default: false,
+  },
+  warningSent1Day: {
+    type: Boolean,
+    default: false,
+  },
+  expirationEmailSent: {
+    type: Boolean,
+    default: false,
+  },
   
   // Loyalty Points Configuration
   loyaltyPointsEnabled: {

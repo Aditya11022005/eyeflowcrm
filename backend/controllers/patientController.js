@@ -23,7 +23,8 @@ export const getPatients = async (req, res) => {
     const patients = await Patient.find(query)
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .lean();
 
     res.json({
       success: true,
@@ -75,7 +76,7 @@ export const createPatient = async (req, res) => {
 // @access  Private
 export const getPatientById = async (req, res) => {
   try {
-    const patient = await Patient.findOne({ _id: req.params.id, storeId: req.storeId });
+    const patient = await Patient.findOne({ _id: req.params.id, storeId: req.storeId }).lean();
 
     if (!patient) {
       return res.status(404).json({ success: false, message: 'Patient not found' });
@@ -84,11 +85,13 @@ export const getPatientById = async (req, res) => {
     // Fetch eye prescriptions history
     const prescriptions = await Prescription.find({ patientId: patient._id, storeId: req.storeId })
       .populate('doctorId', 'name')
-      .sort({ checkupDate: -1 });
+      .sort({ checkupDate: -1 })
+      .lean();
 
     // Fetch glass order history
     const orders = await Order.find({ patientId: patient._id, storeId: req.storeId })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     res.json({
       success: true,

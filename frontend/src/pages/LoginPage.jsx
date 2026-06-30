@@ -52,7 +52,16 @@ const LoginPage = () => {
       }
     } catch (err) {
       console.error(err);
-      dispatch(authFailure(err.response?.data?.message || 'Invalid username or password.'));
+      const isUnverified = err.response?.data?.needsVerification;
+      const errMsg = err.response?.data?.message || 'Invalid username or password.';
+      dispatch(authFailure(errMsg));
+
+      if (isUnverified) {
+        // Wait 1.5 seconds so they can see the error alert, then redirect
+        setTimeout(() => {
+          navigate(`/verify-email?email=${encodeURIComponent(email)}`);
+        }, 1500);
+      }
     }
   };
 
@@ -115,6 +124,12 @@ const LoginPage = () => {
                 if (error) dispatch(clearError());
               }}
             />
+          </div>
+
+          <div className="flex items-center justify-end text-xs -mt-1">
+            <Link to="/forgot-password" className="text-clinic-600 dark:text-clinic-400 font-bold hover:underline">
+              Forgot Password?
+            </Link>
           </div>
 
           <button

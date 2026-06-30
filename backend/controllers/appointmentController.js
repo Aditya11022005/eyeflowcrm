@@ -23,7 +23,8 @@ export const getAppointments = async (req, res) => {
     const appointments = await Appointment.find(query)
       .populate('patientId', 'name phone email')
       .populate('doctorId', 'name')
-      .sort({ appointmentDate: 1, timeSlot: 1 });
+      .sort({ appointmentDate: 1, timeSlot: 1 })
+      .lean();
 
     res.json({
       success: true,

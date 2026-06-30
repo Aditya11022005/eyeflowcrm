@@ -77,4 +77,8 @@ const OrderSchema = new mongoose.Schema({
   timestamps: true,
 });
 
+OrderSchema.index({ storeId: 1, patientId: 1 });
+OrderSchema.index({ storeId: 1, orderStatus: 1 });
+OrderSchema.index({ storeId: 1, createdAt: -1 });
+
 export default mongoose.model('Order', OrderSchema);

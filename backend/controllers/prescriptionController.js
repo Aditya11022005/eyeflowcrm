@@ -16,7 +16,8 @@ export const getPrescriptions = async (req, res) => {
     const prescriptions = await Prescription.find(query)
       .populate('patientId', 'name phone')
       .populate('doctorId', 'name')
-      .sort({ checkupDate: -1 });
+      .sort({ checkupDate: -1 })
+      .lean();
 
     res.json({
       success: true,
@@ -71,7 +72,8 @@ export const getPrescriptionById = async (req, res) => {
     const prescription = await Prescription.findOne({ _id: req.params.id, storeId: req.storeId })
       .populate('patientId', 'name phone dob gender address')
       .populate('doctorId', 'name email')
-      .populate('storeId');
+      .populate('storeId')
+      .lean();
 
     if (!prescription) {
       return res.status(404).json({ success: false, message: 'Prescription record not found' });

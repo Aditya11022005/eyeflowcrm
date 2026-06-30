@@ -57,12 +57,16 @@ const SignupPage = () => {
       });
 
       if (res.data.success) {
-        dispatch(authSuccess({
-          user: res.data.user,
-          store: res.data.store,
-          token: res.data.token,
-        }));
-        navigate('/dashboard');
+        if (res.data.needsVerification) {
+          navigate(`/verify-email?email=${encodeURIComponent(email)}&newSignup=true`);
+        } else {
+          dispatch(authSuccess({
+            user: res.data.user,
+            store: res.data.store,
+            token: res.data.token,
+          }));
+          navigate('/dashboard');
+        }
       }
     } catch (err) {
       console.error(err);

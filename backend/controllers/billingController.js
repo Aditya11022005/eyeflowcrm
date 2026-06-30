@@ -3,6 +3,8 @@ import Store from '../models/Store.js';
 import Patient from '../models/Patient.js';
 import Coupon from '../models/Coupon.js';
 import Package from '../models/Package.js';
+import User from '../models/User.js';
+import { sendSubscriptionSuccessEmail } from '../utils/emailService.js';
 
 
 // @desc    Get all store invoices
@@ -175,7 +177,22 @@ export const subscribePlan = async (req, res) => {
     store.subscriptionEndDate = endDate;
     store.subscriptionId = razorpayPaymentId || `pay_sim_${Math.random().toString(36).substring(2, 10)}`;
 
+    // Reset email warning flags for the new billing cycle
+    store.warningSent7Days = false;
+    store.warningSent1Day = false;
+    store.expirationEmailSent = false;
+
     await store.save();
+
+    // Send subscription confirmation email asynchronously in background
+    try {
+      const owner = await User.findOne({ storeId: store._id, role: 'owner' });
+      if (owner) {
+        await sendSubscriptionSuccessEmail(store, owner.name, owner.email, planName, finalAmount, endDate);
+      }
+    } catch (mailErr) {
+      console.error('[BILLING MAILER ERROR]: Failed sending subscription confirmation email:', mailErr);
+    }
 
     res.json({
       success: true,
