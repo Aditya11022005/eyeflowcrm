@@ -18,6 +18,7 @@ import superadminRoutes from './routes/superadminRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import marketingRoutes from './routes/marketingRoutes.js';
 import publicRoutes from './routes/publicRoutes.js';
+import ticketRoutes from './routes/ticketRoutes.js';
 import { startMarketingScheduler } from './utils/marketingScheduler.js';
 
 // Models for seed
@@ -85,6 +86,7 @@ app.use('/api/superadmin', superadminRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/marketing', marketingRoutes);
+app.use('/api/tickets', ticketRoutes);
 
 // Base Route
 app.get('/', (req, res) => {

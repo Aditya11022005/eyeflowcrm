@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { 
   LayoutDashboard, Users, Calendar, Eye, 
-  Glasses, Package, Receipt, Shield, LogOut, Settings, Megaphone
+  Glasses, Package, Receipt, Shield, LogOut, Settings, Megaphone, HelpCircle
 } from 'lucide-react';
 import eyelitzLogo from '../assets/eyelitz_logo.png';
 
@@ -81,6 +81,12 @@ const Sidebar = ({ isMobileOpen, onClose, onLogout }) => {
       path: '/settings',
       name: 'Settings',
       icon: <Settings className="w-5 h-5" />,
+    });
+
+    menuItems.push({
+      path: '/helpdesk',
+      name: 'Help Desk',
+      icon: <HelpCircle className="w-5 h-5" />,
     });
   }
 
