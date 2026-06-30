@@ -38,30 +38,29 @@ export const registerStore = async (req, res) => {
       address,
     });
 
-    // Generate 6-digit OTP verification code
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-
-    // Create the Owner User
+    // Create the Owner User (Auto-verified)
     const user = await User.create({
       storeId: store._id,
       name: ownerName,
       email: email.toLowerCase(),
       password,
       role: 'owner',
-      isVerified: false,
-      verificationCode: otpCode,
-      verificationExpires: otpExpiry,
+      isVerified: true,
     });
-
-    // Send verification email
-    await sendVerificationEmail(user, otpCode);
 
     res.status(201).json({
       success: true,
-      message: 'Registration successful! A verification email has been sent to your registered address.',
-      needsVerification: true,
-      email: user.email,
+      message: 'Registration successful! Welcome to Eyeflow CRM.',
+      needsVerification: false,
+      token: generateToken(user._id),
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        storeId: user.storeId,
+      },
+      store,
     });
   } catch (error) {
     console.error('Signup Error:', error);
