@@ -92,14 +92,10 @@ export const loginUser = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 
-    // Check if user is verified
+    // Automatically verify user if not already verified (disables verification screens)
     if (!user.isVerified) {
-      return res.status(403).json({
-        success: false,
-        message: 'Your email address is not verified. Please verify your email to log in.',
-        needsVerification: true,
-        email: user.email,
-      });
+      user.isVerified = true;
+      await user.save();
     }
 
     // Load store info if user has a store
