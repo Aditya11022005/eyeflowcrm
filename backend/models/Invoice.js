@@ -57,9 +57,17 @@ const InvoiceSchema = new mongoose.Schema({
     enum: ['cash', 'card', 'upi', 'net-banking', 'other'],
     default: 'cash',
   },
+  amountPaid: {
+    type: Number,
+    default: 0,
+  },
+  balanceDue: {
+    type: Number,
+    default: 0,
+  },
   status: {
     type: String,
-    enum: ['unpaid', 'paid', 'refunded'],
+    enum: ['unpaid', 'partially-paid', 'paid', 'refunded'],
     default: 'unpaid',
   },
   paymentDate: {

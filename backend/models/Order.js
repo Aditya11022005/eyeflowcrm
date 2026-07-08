@@ -31,6 +31,7 @@ const OrderSchema = new mongoose.Schema({
     type: { type: String, default: '' }, // Single Vision, Bifocal, Progressive
     brand: { type: String, default: '' },
     coating: { type: String, default: '' }, // Anti-glare, Blue Cut, Photochromic
+    sku: { type: String, default: '' },
     price: { type: Number, default: 0 },
   },
   totalAmount: {
@@ -71,6 +72,20 @@ const OrderSchema = new mongoose.Schema({
   },
   remarks: {
     type: String,
+    default: '',
+  },
+  labPartnerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'LabPartner',
+    default: null,
+  },
+  labSentDate: {
+    type: Date,
+    default: null,
+  },
+  labDispatchChannel: {
+    type: String,
+    enum: ['email', 'whatsapp', 'sms', ''],
     default: '',
   },
 }, {

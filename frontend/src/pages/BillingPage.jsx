@@ -40,6 +40,7 @@ const BillingPage = () => {
   const [tax, setTax] = useState('0');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [invoiceStatus, setInvoiceStatus] = useState('paid');
+  const [customAmountPaid, setCustomAmountPaid] = useState('0');
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
   const [invoiceError, setInvoiceError] = useState('');
   const [generatingInvoice, setGeneratingInvoice] = useState(false);
@@ -165,6 +166,9 @@ const BillingPage = () => {
     setInvoiceError('');
 
     try {
+      const totalToPay = calculateInvoiceTotal();
+      const actualPaid = invoiceStatus === 'paid' ? totalToPay : (invoiceStatus === 'unpaid' ? 0 : Number(customAmountPaid || 0));
+
       const res = await api.post('/billing/invoices', {
         patientId: selectedPatientId,
         items: invoiceItems,
@@ -173,6 +177,7 @@ const BillingPage = () => {
         tax: Number(tax),
         paymentMethod,
         status: invoiceStatus,
+        amountPaid: actualPaid,
         terms: invoiceTermsEdit,
         invoiceDate,
       });
@@ -188,6 +193,7 @@ const BillingPage = () => {
         setTax('0');
         setPaymentMethod('cash');
         setInvoiceStatus('paid');
+        setCustomAmountPaid('0');
         setInvoiceDate(new Date().toISOString().split('T')[0]);
         fetchInvoices();
       }
@@ -441,13 +447,20 @@ Thank you for choosing ${store?.name || 'us'}!`;
                     <td className="py-3 font-semibold">{inv.patientId?.name || 'Walk-in'}</td>
                     <td className="py-3 capitalize text-slate-500 font-medium">{inv.paymentMethod}</td>
                     <td className="py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                        inv.status === 'paid' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20' : 'bg-slate-150 text-slate-555'
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                        inv.status === 'paid' ? 'bg-emerald-50 text-emerald-650 dark:bg-emerald-950/20 border border-emerald-105' :
+                        inv.status === 'partially-paid' ? 'bg-amber-50 text-amber-655 dark:bg-amber-950/20 border border-amber-105' :
+                        'bg-rose-50 text-rose-650 dark:bg-rose-950/20 border border-rose-100'
                       }`}>
                         {inv.status}
                       </span>
                     </td>
-                    <td className="py-3 text-right font-black text-slate-850 dark:text-slate-150">₹{inv.totalAmount}</td>
+                    <td className="py-3 text-right font-black text-slate-850 dark:text-slate-150">
+                      <div>₹{inv.totalAmount}</div>
+                      {inv.balanceDue > 0 && (
+                        <span className="text-[9px] text-amber-600 font-semibold block mt-0.5">Due: ₹{inv.balanceDue}</span>
+                      )}
+                    </td>
                     <td className="py-3 text-right space-x-3">
                       <Link 
                         to={`/invoices/${inv._id}`}
@@ -821,17 +834,41 @@ Thank you for choosing ${store?.name || 'us'}!`;
                       </select>
                     </div>
                     <div>
-                      <label className="block text-[9px] font-bold text-slate-400 mb-1">Fulfillment Status</label>
+                      <label className="block text-[9px] font-bold text-slate-400 mb-1">Payment Status</label>
                       <select
                         className="w-full px-3 py-2 border border-slate-200 dark:border-slate-800 bg-transparent rounded-lg text-xs dark:text-white dark:bg-darkbg-100 font-bold"
                         value={invoiceStatus}
-                        onChange={(e) => setInvoiceStatus(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setInvoiceStatus(val);
+                          if (val === 'paid') {
+                            setCustomAmountPaid(String(calculateInvoiceTotal()));
+                          } else if (val === 'unpaid') {
+                            setCustomAmountPaid('0');
+                          }
+                        }}
                       >
                         <option value="paid">Paid</option>
+                        <option value="partially-paid">Partially Paid</option>
                         <option value="unpaid">Unpaid</option>
                       </select>
                     </div>
                   </div>
+
+                  {invoiceStatus === 'partially-paid' && (
+                    <div className="text-xs animate-fadeIn">
+                      <label className="block text-[9px] font-bold text-slate-400 mb-1">Amount Paid / Advance (₹)</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max={calculateInvoiceTotal() - 1}
+                        className="w-full px-3 py-2 border border-slate-200 dark:border-slate-800 bg-transparent rounded-lg text-xs dark:text-white font-bold"
+                        value={customAmountPaid}
+                        onChange={(e) => setCustomAmountPaid(e.target.value)}
+                      />
+                      <p className="text-[9px] text-amber-600 mt-1">Remaining balance will be ₹{Math.max(0, calculateInvoiceTotal() - Number(customAmountPaid || 0))}</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Subtotal & final box */}

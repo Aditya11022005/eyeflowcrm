@@ -13,6 +13,9 @@ const CheckupPage = () => {
   const [patients, setPatients] = useState([]);
   const [selectedPatientId, setSelectedPatientId] = useState(patientIdFromQuery);
   const [loadingPatients, setLoadingPatients] = useState(true);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [patientSearchQuery, setPatientSearchQuery] = useState('');
+  const [previousPrescription, setPreviousPrescription] = useState(null);
 
   // Vision variables (Right Eye)
   const [reSph, setReSph] = useState('0.00');
@@ -58,7 +61,26 @@ const CheckupPage = () => {
       try {
         const res = await api.get('/patients?limit=100');
         if (res.data.success) {
-          setPatients(res.data.patients || []);
+          const loadedPatients = res.data.patients || [];
+          setPatients(loadedPatients);
+          
+          if (patientIdFromQuery) {
+            const found = loadedPatients.find(p => p._id === patientIdFromQuery);
+            if (found) {
+              setPatientSearchQuery(`${found.name} (${found.phone})`);
+            } else {
+              try {
+                const singleRes = await api.get(`/patients/${patientIdFromQuery}`);
+                if (singleRes.data.success && singleRes.data.patient) {
+                  const p = singleRes.data.patient;
+                  setPatients(prev => [p, ...prev]);
+                  setPatientSearchQuery(`${p.name} (${p.phone})`);
+                }
+              } catch (singleErr) {
+                console.error('Error fetching single patient:', singleErr);
+              }
+            }
+          }
         }
       } catch (err) {
         console.error('Error fetching patients:', err);
@@ -67,7 +89,67 @@ const CheckupPage = () => {
       }
     };
     loadPatientsList();
+  }, [patientIdFromQuery]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const container = document.getElementById('patient-search-container');
+      if (container && !container.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    const fetchPreviousPrescription = async () => {
+      if (!selectedPatientId) {
+        setPreviousPrescription(null);
+        return;
+      }
+      try {
+        const res = await api.get(`/prescriptions?patientId=${selectedPatientId}`);
+        if (res.data.success && res.data.prescriptions && res.data.prescriptions.length > 0) {
+          setPreviousPrescription(res.data.prescriptions[0]);
+        } else {
+          setPreviousPrescription(null);
+        }
+      } catch (err) {
+        console.error('Error loading previous prescription:', err);
+        setPreviousPrescription(null);
+      }
+    };
+    fetchPreviousPrescription();
+  }, [selectedPatientId]);
+
+  const handleApplyPreviousRefraction = () => {
+    if (previousPrescription) {
+      setReSph(previousPrescription.rightEye.sph || '0.00');
+      setReCyl(previousPrescription.rightEye.cyl || '0.00');
+      setReAxis(previousPrescription.rightEye.axis || '');
+      setReAdd(previousPrescription.rightEye.add || '');
+      setRePd(previousPrescription.rightEye.pd || '');
+      setReVa(previousPrescription.rightEye.va || '6/6');
+
+      setLeSph(previousPrescription.leftEye.sph || '0.00');
+      setLeCyl(previousPrescription.leftEye.cyl || '0.00');
+      setLeAxis(previousPrescription.leftEye.axis || '');
+      setLeAdd(previousPrescription.leftEye.add || '');
+      setLePd(previousPrescription.leftEye.pd || '');
+      setLeVa(previousPrescription.leftEye.va || '6/6');
+
+      if (previousPrescription.lensTypeRecommended) {
+        setLensTypeRecommended(previousPrescription.lensTypeRecommended);
+      }
+      if (previousPrescription.remarks) {
+        setRemarks(previousPrescription.remarks);
+      }
+      if (previousPrescription.doctorSignature) {
+        setDoctorSignature(previousPrescription.doctorSignature);
+      }
+    }
+  };
 
   // AI Suggestion Engine (Rule-based clinical simulator)
   const triggerAiSuggestions = () => {
@@ -172,6 +254,12 @@ const CheckupPage = () => {
     }
   };
 
+  const filteredPatients = patients.filter(p => 
+    p.name.toLowerCase().includes(patientSearchQuery.toLowerCase()) ||
+    p.phone.includes(patientSearchQuery) ||
+    (p.email && p.email.toLowerCase().includes(patientSearchQuery.toLowerCase()))
+  );
+
   return (
     <div className="space-y-6">
       {/* Title */}
@@ -190,26 +278,72 @@ const CheckupPage = () => {
       <form onSubmit={handleSave} className="space-y-6">
         {/* Patient Selection & Checkup Date Card */}
         <div className="p-6 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-darkbg-100 space-y-4">
-          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-250">Patient Identification & Checkup Date</h3>
+          <h3 className="text-sm font-bold text-slate-850 dark:text-slate-250">Patient Identification & Checkup Date</h3>
           
           {loadingPatients ? (
             <p className="text-xs text-slate-400">Loading patients...</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div className="relative" id="patient-search-container">
                 <label className="block text-[10px] font-bold text-slate-400 mb-1.5">Choose Patient File</label>
-                <select
-                  required
-                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-800 bg-transparent rounded-xl outline-none focus:ring-2 focus:ring-clinic-500 text-xs dark:text-white dark:bg-darkbg-100 font-bold"
-                  value={selectedPatientId}
-                  onChange={(e) => setSelectedPatientId(e.target.value)}
-                >
-                  <option value="">-- Choose Patient File --</option>
-                  {patients.map(p => (
-                    <option key={p._id} value={p._id}>{p.name} ({p.phone})</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    placeholder="Type name or phone to search..."
+                    className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-800 bg-transparent rounded-xl outline-none focus:ring-2 focus:ring-clinic-500 text-xs dark:text-white dark:bg-darkbg-100 font-bold"
+                    value={patientSearchQuery}
+                    onChange={(e) => {
+                      setPatientSearchQuery(e.target.value);
+                      setSelectedPatientId(''); // Clear selection while typing
+                      setShowDropdown(true);
+                    }}
+                    onFocus={() => setShowDropdown(true)}
+                  />
+                  {selectedPatientId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedPatientId('');
+                        setPatientSearchQuery('');
+                        setShowDropdown(true);
+                      }}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-white text-[10px] font-black px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg transition-all"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                {/* Searchable Dropdown */}
+                {showDropdown && (
+                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-darkbg-100 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                    {filteredPatients.length === 0 ? (
+                      <div className="px-4 py-3 text-xs text-slate-500 italic">No patients match search</div>
+                    ) : (
+                      filteredPatients.map(p => (
+                        <button
+                          key={p._id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedPatientId(p._id);
+                            setPatientSearchQuery(`${p.name} (${p.phone})`);
+                            setShowDropdown(false);
+                            setError('');
+                          }}
+                          className={`w-full text-left px-4 py-2.5 text-xs hover:bg-slate-55/10 dark:hover:bg-slate-900/20 transition-colors flex flex-col ${
+                            selectedPatientId === p._id ? 'bg-clinic-500/10 dark:bg-clinic-950/20 border-l-4 border-clinic-500' : ''
+                          }`}
+                        >
+                          <span className="font-bold text-slate-800 dark:text-slate-100">{p.name}</span>
+                          <span className="text-[10px] text-slate-400 mt-0.5">{p.phone} {p.email ? `• ${p.email}` : ''}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
+              
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 mb-1.5">Checkup / Prescription Date</label>
                 <input
@@ -223,6 +357,28 @@ const CheckupPage = () => {
             </div>
           )}
         </div>
+
+        {/* Previous prescription banner alert */}
+        {previousPrescription && (
+          <div className="p-4 rounded-3xl bg-clinic-500/10 border border-clinic-500/20 text-clinic-700 dark:text-clinic-400 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 animate-fadeIn">
+            <div className="text-xs space-y-1">
+              <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-clinic-500 animate-pulse" />
+                Previous checkup details found from {new Date(previousPrescription.checkupDate).toLocaleDateString()}
+              </span>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                OD: SPH {previousPrescription.rightEye.sph} / CYL {previousPrescription.rightEye.cyl} | OS: SPH {previousPrescription.leftEye.sph} / CYL {previousPrescription.leftEye.cyl}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleApplyPreviousRefraction}
+              className="px-4 py-2 bg-clinic-500 hover:bg-clinic-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-clinic-500/15 cursor-pointer flex items-center gap-1 hover:scale-105 active:scale-95 shrink-0"
+            >
+              Use Previous Refraction Bounds
+            </button>
+          </div>
+        )}
 
         {/* Refraction Values Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

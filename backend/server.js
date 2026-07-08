@@ -18,6 +18,7 @@ import superadminRoutes from './routes/superadminRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import marketingRoutes from './routes/marketingRoutes.js';
 import publicRoutes from './routes/publicRoutes.js';
+import labPartnerRoutes from './routes/labPartnerRoutes.js';
 import ticketRoutes from './routes/ticketRoutes.js';
 import { startMarketingScheduler } from './utils/marketingScheduler.js';
 
@@ -31,7 +32,7 @@ dotenv.config();
 connectDB().then(async () => {
   // Seed Super Admin if not exists
   try {
-    const adminEmail = 'admin@eyelitz.com';
+    const adminEmail = 'eyelitzcrm@gmail.com';
     const adminExists = await User.findOne({ email: adminEmail });
     if (!adminExists) {
       await User.create({
@@ -42,7 +43,7 @@ connectDB().then(async () => {
         active: true,
         isVerified: true,
       });
-      console.log('Seeded platform Super Admin (admin@eyelitz.com / adminpassword123)');
+      console.log('Seeded platform Super Admin (eyelitzcrm@gmail.com / adminpassword123)');
     }
     
     // Seed 10 mock stores and owners
@@ -87,6 +88,7 @@ app.use('/api/public', publicRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/marketing', marketingRoutes);
 app.use('/api/tickets', ticketRoutes);
+app.use('/api/partners', labPartnerRoutes);
 
 // Base Route
 app.get('/', (req, res) => {

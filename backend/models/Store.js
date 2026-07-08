@@ -142,6 +142,18 @@ const StoreSchema = new mongoose.Schema({
       type: String,
       default: "Thank you for your purchase. Optics frames support 1-year manufacturers warranties. Corrective lens scratches are not covered by warranty limits.",
     },
+    emailjsServiceId: {
+      type: String,
+      default: '',
+    },
+    emailjsTemplateId: {
+      type: String,
+      default: '',
+    },
+    emailjsPublicKey: {
+      type: String,
+      default: '',
+    },
   }, {
     timestamps: true,
   });

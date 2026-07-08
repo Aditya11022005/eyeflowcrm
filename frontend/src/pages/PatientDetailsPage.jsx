@@ -3,7 +3,8 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   User, Phone, Mail, MapPin, Eye, ClipboardList, Glasses, 
   CalendarPlus, CreditCard, ChevronRight, ArrowLeft, Trash2,
-  FileText, UploadCloud, Download, ExternalLink, Loader2, Coins
+  FileText, UploadCloud, Download, ExternalLink, Loader2, Coins,
+  Edit, X
 } from 'lucide-react';
 import api from '../utils/api.js';
 
@@ -21,6 +22,72 @@ const PatientDetailsPage = () => {
   const [attachmentName, setAttachmentName] = useState('');
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [uploadError, setUploadError] = useState('');
+
+  // Edit Patient State
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [gender, setGender] = useState('unspecified');
+  const [dob, setDob] = useState('');
+  const [address, setAddress] = useState('');
+  const [notes, setNotes] = useState('');
+  const [loyaltyPoints, setLoyaltyPoints] = useState(0);
+  const [submitError, setSubmitError] = useState('');
+  const [submitLoading, setSubmitLoading] = useState(false);
+
+  const handleOpenEditModal = () => {
+    if (patient) {
+      setName(patient.name || '');
+      setPhone(patient.phone || '');
+      setEmail(patient.email || '');
+      setGender(patient.gender || 'unspecified');
+      
+      let formattedDob = '';
+      if (patient.dob) {
+        try {
+          formattedDob = new Date(patient.dob).toISOString().split('T')[0];
+        } catch (e) {
+          formattedDob = patient.dob.substring(0, 10);
+        }
+      }
+      setDob(formattedDob);
+      setAddress(patient.address || '');
+      setNotes(patient.notes || '');
+      setLoyaltyPoints(patient.loyaltyPoints || 0);
+      setSubmitError('');
+      setShowEditModal(true);
+    }
+  };
+
+  const handleEditPatient = async (e) => {
+    e.preventDefault();
+    setSubmitError('');
+    setSubmitLoading(true);
+
+    try {
+      const res = await api.put(`/patients/${id}`, {
+        name,
+        phone,
+        email,
+        gender,
+        dob: dob || null,
+        address,
+        notes,
+        loyaltyPoints: Number(loyaltyPoints)
+      });
+
+      if (res.data.success) {
+        setPatient(res.data.patient);
+        setShowEditModal(false);
+      }
+    } catch (err) {
+      console.error(err);
+      setSubmitError(err.response?.data?.message || 'Error updating patient information.');
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
 
   const handleUploadAttachment = async (e) => {
     e.preventDefault();
@@ -142,13 +209,23 @@ const PatientDetailsPage = () => {
           <ArrowLeft className="w-4 h-4" />
           Back to list
         </Link>
-        <button
-          onClick={handleDelete}
-          className="p-2 border border-rose-100 text-rose-500 hover:bg-rose-50 dark:border-rose-950/20 dark:hover:bg-rose-950/30 rounded-xl transition-all"
-          title="Delete Patient Record"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleOpenEditModal}
+            className="px-3.5 py-2 border border-slate-200 text-slate-700 dark:border-slate-800 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-all font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+            title="Edit Patient Details"
+          >
+            <Edit className="w-4 h-4 text-clinic-500" />
+            Edit Info
+          </button>
+          <button
+            onClick={handleDelete}
+            className="p-2 border border-rose-100 text-rose-500 hover:bg-rose-50 dark:border-rose-950/20 dark:hover:bg-rose-950/30 rounded-xl transition-all"
+            title="Delete Patient Record"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Patient Profile Card */}
@@ -438,6 +515,146 @@ const PatientDetailsPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Edit Patient Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg bg-white dark:bg-darkbg-100 rounded-3xl border border-slate-200 dark:border-slate-850 shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setShowEditModal(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 mb-6">Edit Patient Profile</h3>
+
+            {submitError && (
+              <div className="mb-4 p-2.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-xl text-xs font-semibold">
+                {submitError}
+              </div>
+            )}
+
+            <form onSubmit={handleEditPatient} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1.5">Patient Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. John Doe"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent focus:ring-2 focus:ring-clinic-500 focus:border-transparent outline-none text-xs dark:text-white"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1.5">Phone Number</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="+91 9876543210"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent focus:ring-2 focus:ring-clinic-500 focus:border-transparent outline-none text-xs dark:text-white"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1.5">Email Address</label>
+                  <input
+                    type="email"
+                    placeholder="john@example.com"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent focus:ring-2 focus:ring-clinic-500 focus:border-transparent outline-none text-xs dark:text-white"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1.5">Gender</label>
+                  <select
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent focus:ring-2 focus:ring-clinic-500 focus:border-transparent outline-none text-xs dark:text-white dark:bg-darkbg-100"
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value)}
+                  >
+                    <option value="unspecified">Select Gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1.5">Date of Birth</label>
+                  <input
+                    type="date"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent focus:ring-2 focus:ring-clinic-500 focus:border-transparent outline-none text-xs dark:text-white"
+                    value={dob}
+                    onChange={(e) => setDob(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-1">
+                  <label className="block text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1.5">Loyalty Points</label>
+                  <input
+                    type="number"
+                    min="0"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent focus:ring-2 focus:ring-clinic-500 focus:border-transparent outline-none text-xs dark:text-white"
+                    value={loyaltyPoints}
+                    onChange={(e) => setLoyaltyPoints(e.target.value)}
+                  />
+                </div>
+                
+                <div className="sm:col-span-1">
+                  <label className="block text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1.5">Residential Address</label>
+                  <input
+                    type="text"
+                    placeholder="Street and house number"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent focus:ring-2 focus:ring-clinic-500 focus:border-transparent outline-none text-xs dark:text-white"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1.5">Medical Notes & Comments</label>
+                <textarea
+                  rows={3}
+                  placeholder="Allergies, previous eye surgeries, etc."
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent focus:ring-2 focus:ring-clinic-500 focus:border-transparent outline-none text-xs dark:text-white text-sm"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-350"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitLoading}
+                  className="px-5 py-2.5 bg-clinic-500 text-white rounded-xl font-bold shadow-md shadow-clinic-500/10 hover:bg-clinic-600 transition-colors text-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  {submitLoading && <Loader2 className="w-3 h-3 animate-spin" />}
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

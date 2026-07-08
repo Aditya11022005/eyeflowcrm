@@ -77,7 +77,7 @@ const PrescriptionDetailsPage = () => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-6 border-b-2 border-slate-200 gap-4">
           <div className="flex items-center gap-3">
             {clinic.logo ? (
-              <img src={clinic.logo} alt={clinic.name} className="h-12 w-auto max-w-[150px] object-contain rounded-lg" />
+              <img src={clinic.logo} alt={clinic.name} className="h-20 w-auto max-w-[250px] object-contain rounded-lg" />
             ) : (
               <div className="w-10 h-10 rounded-xl bg-clinic-50 text-clinic-600 flex items-center justify-center font-black text-sm border border-clinic-100">
                 {clinic.name ? clinic.name.split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 3).toUpperCase() : 'EC'}
@@ -184,7 +184,7 @@ const PrescriptionDetailsPage = () => {
         {/* Footer print disclaimer */}
         <div className="border-t border-slate-150 pt-6 mt-12 text-center text-[10px] text-slate-455 font-medium space-y-1">
           <p>This prescription is electronically generated and managed via <strong>Eyelitz CRM</strong>.</p>
-          <p>Please consult your optometrist if you experience strain or headaches. Support: <span className="text-clinic-600 font-semibold">billing@eyelitz.com</span></p>
+          <p>Please consult your optometrist if you experience strain or headaches. Support: <span className="text-clinic-600 font-semibold">eyelitzcrm@gmail.com</span></p>
         </div>
       </div>
     </div>

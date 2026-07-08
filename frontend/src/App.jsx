@@ -21,6 +21,7 @@ import SettingsPage from './pages/SettingsPage.jsx';
 import InvoiceDetailsPage from './pages/InvoiceDetailsPage.jsx';
 import MarketingPage from './pages/MarketingPage.jsx';
 import HelpdeskPage from './pages/HelpdeskPage.jsx';
+import PartnersPage from './pages/PartnersPage.jsx';
 
 function App() {
   return (
@@ -48,6 +49,7 @@ function App() {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/marketing" element={<MarketingPage />} />
         <Route path="/helpdesk" element={<HelpdeskPage />} />
+        <Route path="/partners" element={<PartnersPage />} />
         
         {/* Superadmin Panel */}
         <Route path="/admin" element={<AdminDashboardPage />} />

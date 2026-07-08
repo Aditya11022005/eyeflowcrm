@@ -1,5 +1,5 @@
 import express from 'express';
-import { getInventory, createInventoryItem, updateInventoryItem, deleteInventoryItem } from '../controllers/inventoryController.js';
+import { getInventory, createInventoryItem, updateInventoryItem, deleteInventoryItem, lookupBarcode } from '../controllers/inventoryController.js';
 import { protect } from '../middleware/auth.js';
 import { checkRole } from '../middleware/role.js';
 import { checkSubscription } from '../middleware/subscription.js';
@@ -8,6 +8,8 @@ const router = express.Router();
 
 router.use(protect);
 router.use(checkSubscription);
+
+router.get('/lookup/:barcode', checkRole('owner', 'staff'), lookupBarcode);
 
 router.route('/')
   .get(getInventory)

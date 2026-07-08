@@ -5,6 +5,8 @@ import Coupon from '../models/Coupon.js';
 import Package from '../models/Package.js';
 import User from '../models/User.js';
 import { sendSubscriptionSuccessEmail } from '../utils/emailService.js';
+import Order from '../models/Order.js';
+import Prescription from '../models/Prescription.js';
 
 
 // @desc    Get all store invoices
@@ -12,9 +14,31 @@ import { sendSubscriptionSuccessEmail } from '../utils/emailService.js';
 // @access  Private
 export const getInvoices = async (req, res) => {
   try {
-    const invoices = await Invoice.find({ storeId: req.storeId })
+    const rawInvoices = await Invoice.find({ storeId: req.storeId })
       .populate('patientId', 'name phone')
       .sort({ createdAt: -1 });
+
+    const invoices = await Promise.all(rawInvoices.map(async (inv) => {
+      const obj = inv.toObject();
+      
+      // If linked to an order, fetch order data to get correct amountPaid and balanceDue
+      if (obj.orderId) {
+        const order = await Order.findById(obj.orderId).lean();
+        if (order) {
+          obj.amountPaid = order.amountPaid;
+          obj.balanceDue = Math.max(0, order.finalAmount - order.amountPaid);
+          obj.status = order.paymentStatus;
+        }
+      } else {
+        if (obj.amountPaid === undefined || obj.amountPaid === null) {
+          obj.amountPaid = obj.status === 'paid' ? obj.totalAmount : 0;
+        }
+        if (obj.balanceDue === undefined || obj.balanceDue === null) {
+          obj.balanceDue = Math.max(0, obj.totalAmount - obj.amountPaid);
+        }
+      }
+      return obj;
+    }));
 
     res.json({
       success: true,
@@ -30,7 +54,7 @@ export const getInvoices = async (req, res) => {
 // @route   POST /api/billing/invoices
 // @access  Private
 export const createCustomInvoice = async (req, res) => {
-  const { patientId, items, discount, tax, paymentMethod, status, redeemPoints, terms, invoiceDate } = req.body;
+  const { patientId, items, discount, tax, paymentMethod, status, redeemPoints, terms, invoiceDate, amountPaid } = req.body;
 
   try {
     const patient = await Patient.findOne({ _id: patientId, storeId: req.storeId });
@@ -69,6 +93,19 @@ export const createCustomInvoice = async (req, res) => {
     }
 
     const totalAmount = Math.max(0, subtotal - discountAmt - pointsDiscount + taxAmt);
+    const paid = amountPaid !== undefined ? Number(amountPaid) : (status === 'paid' ? totalAmount : 0);
+    const balanceDue = Math.max(0, totalAmount - paid);
+
+    let finalStatus = status;
+    if (amountPaid !== undefined) {
+      if (paid >= totalAmount && totalAmount > 0) {
+        finalStatus = 'paid';
+      } else if (paid > 0) {
+        finalStatus = 'unpaid'; // Save as unpaid, UI will resolve dynamically
+      } else {
+        finalStatus = 'unpaid';
+      }
+    }
 
     // Handle Loyalty Points Earning
     let pointsEarned = 0;
@@ -92,10 +129,12 @@ export const createCustomInvoice = async (req, res) => {
       pointsEarned,
       tax: taxAmt,
       totalAmount,
+      amountPaid: paid,
+      balanceDue,
       paymentMethod,
-      status,
+      status: finalStatus,
       terms: terms !== undefined ? terms : (store.invoiceTerms || ''),
-      paymentDate: status === 'paid' ? (invoiceDate ? new Date(invoiceDate) : new Date()) : null,
+      paymentDate: finalStatus === 'paid' ? (invoiceDate ? new Date(invoiceDate) : new Date()) : null,
       invoiceDate: invoiceDate ? new Date(invoiceDate) : new Date(),
     });
 
@@ -210,12 +249,58 @@ export const subscribePlan = async (req, res) => {
 // @access  Private
 export const getInvoiceById = async (req, res) => {
   try {
-    const invoice = await Invoice.findOne({ _id: req.params.id, storeId: req.storeId })
+    let invoice = await Invoice.findOne({ _id: req.params.id, storeId: req.storeId })
       .populate('patientId', 'name phone email address')
-      .populate('storeId');
+      .populate('storeId')
+      .populate({
+        path: 'orderId',
+        populate: {
+          path: 'prescriptionId'
+        }
+      });
 
     if (!invoice) {
       return res.status(404).json({ success: false, message: 'Invoice not found' });
+    }
+
+    // Retroactive Link check: If invoice has order but order doesn't have prescription, fetch patient's latest prescription
+    if (invoice.orderId && !invoice.orderId.prescriptionId) {
+      const latestPrescription = await Prescription.findOne({
+        patientId: invoice.patientId._id,
+        storeId: invoice.storeId._id
+      }).sort({ checkupDate: -1, createdAt: -1 });
+
+      if (latestPrescription) {
+        await Order.findByIdAndUpdate(invoice.orderId._id, { prescriptionId: latestPrescription._id });
+        invoice.orderId.prescriptionId = latestPrescription;
+      }
+    }
+
+    // Sync/Fallback logic
+    let updated = false;
+    if (invoice.orderId) {
+      const order = await Order.findById(invoice.orderId);
+      if (order) {
+        if (invoice.amountPaid !== order.amountPaid || invoice.balanceDue !== Math.max(0, order.finalAmount - order.amountPaid) || invoice.status !== order.paymentStatus) {
+          invoice.amountPaid = order.amountPaid;
+          invoice.balanceDue = Math.max(0, order.finalAmount - order.amountPaid);
+          invoice.status = order.paymentStatus;
+          updated = true;
+        }
+      }
+    } else {
+      if (invoice.amountPaid === undefined || invoice.amountPaid === null) {
+        invoice.amountPaid = invoice.status === 'paid' ? invoice.totalAmount : 0;
+        updated = true;
+      }
+      if (invoice.balanceDue === undefined || invoice.balanceDue === null) {
+        invoice.balanceDue = Math.max(0, invoice.totalAmount - invoice.amountPaid);
+        updated = true;
+      }
+    }
+
+    if (updated) {
+      await invoice.save();
     }
 
     res.json({
@@ -233,12 +318,58 @@ export const getInvoiceById = async (req, res) => {
 // @access  Public
 export const getPublicInvoiceById = async (req, res) => {
   try {
-    const invoice = await Invoice.findById(req.params.id)
+    let invoice = await Invoice.findById(req.params.id)
       .populate('patientId', 'name phone email address')
-      .populate('storeId');
+      .populate('storeId')
+      .populate({
+        path: 'orderId',
+        populate: {
+          path: 'prescriptionId'
+        }
+      });
 
     if (!invoice) {
       return res.status(404).json({ success: false, message: 'Invoice not found' });
+    }
+
+    // Retroactive Link check: If invoice has order but order doesn't have prescription, fetch patient's latest prescription
+    if (invoice.orderId && !invoice.orderId.prescriptionId) {
+      const latestPrescription = await Prescription.findOne({
+        patientId: invoice.patientId._id,
+        storeId: invoice.storeId._id
+      }).sort({ checkupDate: -1, createdAt: -1 });
+
+      if (latestPrescription) {
+        await Order.findByIdAndUpdate(invoice.orderId._id, { prescriptionId: latestPrescription._id });
+        invoice.orderId.prescriptionId = latestPrescription;
+      }
+    }
+
+    // Sync/Fallback logic
+    let updated = false;
+    if (invoice.orderId) {
+      const order = await Order.findById(invoice.orderId);
+      if (order) {
+        if (invoice.amountPaid !== order.amountPaid || invoice.balanceDue !== Math.max(0, order.finalAmount - order.amountPaid) || invoice.status !== order.paymentStatus) {
+          invoice.amountPaid = order.amountPaid;
+          invoice.balanceDue = Math.max(0, order.finalAmount - order.amountPaid);
+          invoice.status = order.paymentStatus;
+          updated = true;
+        }
+      }
+    } else {
+      if (invoice.amountPaid === undefined || invoice.amountPaid === null) {
+        invoice.amountPaid = invoice.status === 'paid' ? invoice.totalAmount : 0;
+        updated = true;
+      }
+      if (invoice.balanceDue === undefined || invoice.balanceDue === null) {
+        invoice.balanceDue = Math.max(0, invoice.totalAmount - invoice.amountPaid);
+        updated = true;
+      }
+    }
+
+    if (updated) {
+      await invoice.save();
     }
 
     res.json({
@@ -315,7 +446,7 @@ export const validateCoupon = async (req, res) => {
 // @route   PUT /api/billing/invoices/:id
 // @access  Private
 export const updateInvoice = async (req, res) => {
-  const { terms, status, paymentMethod } = req.body;
+  const { terms, status, paymentMethod, amountPaid } = req.body;
 
   try {
     const invoice = await Invoice.findOne({ _id: req.params.id, storeId: req.storeId });
@@ -325,15 +456,46 @@ export const updateInvoice = async (req, res) => {
     }
 
     if (terms !== undefined) invoice.terms = terms;
-    if (status !== undefined) {
-      invoice.status = status;
-      if (status === 'paid' && !invoice.paymentDate) {
-        invoice.paymentDate = new Date();
-      }
-    }
     if (paymentMethod !== undefined) invoice.paymentMethod = paymentMethod;
 
+    if (amountPaid !== undefined) {
+      invoice.amountPaid = Number(amountPaid);
+      invoice.balanceDue = Math.max(0, invoice.totalAmount - invoice.amountPaid);
+      if (invoice.amountPaid >= invoice.totalAmount) {
+        invoice.status = 'paid';
+        if (!invoice.paymentDate) {
+          invoice.paymentDate = new Date();
+        }
+      } else if (invoice.amountPaid > 0) {
+        invoice.status = 'unpaid'; // Save as unpaid, UI will resolve dynamically
+      } else {
+        invoice.status = 'unpaid';
+      }
+    } else if (status !== undefined) {
+      invoice.status = status;
+      if (status === 'paid') {
+        invoice.amountPaid = invoice.totalAmount;
+        invoice.balanceDue = 0;
+        if (!invoice.paymentDate) {
+          invoice.paymentDate = new Date();
+        }
+      } else if (status === 'unpaid') {
+        invoice.amountPaid = 0;
+        invoice.balanceDue = invoice.totalAmount;
+      }
+    }
+
     await invoice.save();
+
+    // Sync corresponding Order if linked
+    if (invoice.orderId) {
+      const order = await Order.findById(invoice.orderId);
+      if (order) {
+        order.amountPaid = invoice.amountPaid;
+        order.paymentStatus = (invoice.amountPaid >= invoice.totalAmount) ? 'paid' : (invoice.amountPaid > 0 ? 'partially-paid' : 'unpaid');
+        await order.save();
+      }
+    }
 
     res.json({
       success: true,

@@ -149,3 +149,53 @@ export const deleteInventoryItem = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error deleting inventory item' });
   }
 };
+
+// @desc    Lookup barcode from third-party database
+// @route   GET /api/inventory/lookup/:barcode
+// @access  Private (Owner/Staff)
+export const lookupBarcode = async (req, res) => {
+  const { barcode } = req.params;
+
+  try {
+    const response = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`);
+    
+    if (!response.ok) {
+      return res.status(404).json({ success: false, message: 'Barcode lookup failed' });
+    }
+
+    const data = await response.json();
+    
+    if (data.code === 'OK' && data.items && data.items.length > 0) {
+      const item = data.items[0];
+      
+      // Determine potential category from breadcrumbs/tags/title
+      let guessedCategory = 'frame'; // default
+      const categoryStr = (item.category || '').toLowerCase();
+      const titleStr = (item.title || '').toLowerCase();
+      
+      if (categoryStr.includes('glass') || categoryStr.includes('eyewear') || categoryStr.includes('sunglasses') ||
+          titleStr.includes('glass') || titleStr.includes('eyewear') || titleStr.includes('sunglasses') || titleStr.includes('frame')) {
+        guessedCategory = 'frame';
+      } else if (categoryStr.includes('lens') || categoryStr.includes('optics') || titleStr.includes('lens')) {
+        guessedCategory = 'lens';
+      } else if (categoryStr.includes('contact') || titleStr.includes('contact')) {
+        guessedCategory = 'contact-lens';
+      }
+
+      return res.json({
+        success: true,
+        product: {
+          name: item.title || '',
+          brand: item.brand || '',
+          category: guessedCategory,
+          retailPrice: item.lowest_recorded_price || item.highest_recorded_price || 0
+        }
+      });
+    }
+
+    res.status(404).json({ success: false, message: 'Product not found in barcode database' });
+  } catch (error) {
+    console.error('Barcode Lookup Error:', error);
+    res.status(500).json({ success: false, message: 'Server error during barcode database lookup' });
+  }
+};
