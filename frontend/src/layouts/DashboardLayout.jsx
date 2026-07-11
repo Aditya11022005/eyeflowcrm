@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { AlertCircle, ArrowRight } from 'lucide-react';
@@ -9,8 +9,22 @@ import { logout } from '../store/authSlice.js';
 const DashboardLayout = () => {
   const { isAuthenticated, user, store } = useSelector((state) => state.auth);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(localStorage.getItem('theme') === 'dark');
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
+  // Sync theme to DOM body
+  useEffect(() => {
+    if (darkMode) {
+      document.body.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.body.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [darkMode]);
+
+  const toggleTheme = () => setDarkMode(!darkMode);
 
   if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />;
@@ -30,6 +44,7 @@ const DashboardLayout = () => {
         isMobileOpen={isMobileSidebarOpen} 
         onClose={() => setIsMobileSidebarOpen(false)} 
         onLogout={handleLogout}
+        darkMode={darkMode}
       />
 
       {/* Main Content Area */}
@@ -55,7 +70,11 @@ const DashboardLayout = () => {
           </div>
         )}
 
-        <Header onMenuToggle={() => setIsMobileSidebarOpen(true)} />
+        <Header 
+          onMenuToggle={() => setIsMobileSidebarOpen(true)} 
+          darkMode={darkMode}
+          onToggleTheme={toggleTheme}
+        />
         
         {/* Child Router View */}
         <main className="flex-1 overflow-y-auto p-6 focus:outline-none">

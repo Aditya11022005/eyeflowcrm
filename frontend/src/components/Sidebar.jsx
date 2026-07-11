@@ -6,8 +6,9 @@ import {
   Glasses, Package, Receipt, Shield, LogOut, Settings, Megaphone, HelpCircle, FlaskConical
 } from 'lucide-react';
 import eyelitzLogo from '../assets/eyelitz_logo.png';
+import eyelitzLogoLight from '../assets/eyelitz_logo_light.png';
 
-const Sidebar = ({ isMobileOpen, onClose, onLogout }) => {
+const Sidebar = ({ isMobileOpen, onClose, onLogout, darkMode }) => {
   const { user } = useSelector((state) => state.auth);
   
   if (!user) return null;
@@ -117,7 +118,7 @@ const Sidebar = ({ isMobileOpen, onClose, onLogout }) => {
       >
         {/* Branding Header */}
         <div className="flex flex-col items-center justify-center py-6 border-b border-slate-100 dark:border-slate-800">
-          <img src={eyelitzLogo} alt="Eyelitz Logo" className="w-24 h-24 object-contain" />
+          <img src={darkMode ? eyelitzLogo : eyelitzLogoLight} alt="Eyelitz Logo" className="w-24 h-24 object-contain" />
           <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium tracking-widest uppercase mt-2">
             {role === 'superadmin' ? 'SaaS System' : 'Clinic Suite'}
           </p>

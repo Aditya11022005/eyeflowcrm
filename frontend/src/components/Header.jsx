@@ -3,22 +3,10 @@ import { useSelector } from 'react-redux';
 import { Menu, Sun, Moon, Bell, Sparkles } from 'lucide-react';
 import api from '../utils/api.js';
 
-const Header = ({ onMenuToggle }) => {
+const Header = ({ onMenuToggle, darkMode, onToggleTheme }) => {
   const { user, store } = useSelector((state) => state.auth);
-  const [darkMode, setDarkMode] = useState(localStorage.getItem('theme') === 'dark');
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
-
-  // Sync theme to DOM
-  useEffect(() => {
-    if (darkMode) {
-      document.body.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.body.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [darkMode]);
 
   // Fetch notifications
   useEffect(() => {
@@ -39,7 +27,7 @@ const Header = ({ onMenuToggle }) => {
     return () => clearInterval(interval);
   }, [user]);
 
-  const toggleTheme = () => setDarkMode(!darkMode);
+  const toggleTheme = onToggleTheme;
 
   const getSubscriptionPill = () => {
     if (!store) return null;

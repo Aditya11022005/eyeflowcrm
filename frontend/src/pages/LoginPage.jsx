@@ -5,6 +5,7 @@ import { ShieldAlert, Loader2 } from 'lucide-react';
 import { authStart, authSuccess, authFailure, clearError } from '../store/authSlice.js';
 import api from '../utils/api.js';
 import eyelitzLogo from '../assets/eyelitz_logo.png';
+import eyelitzLogoLight from '../assets/eyelitz_logo_light.png';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -73,7 +74,7 @@ const LoginPage = () => {
 
       <div className="w-full max-w-md p-8 rounded-3xl border border-slate-200 dark:border-slate-850 bg-white/80 dark:bg-darkbg-100/80 backdrop-blur-md shadow-2xl">
         <div className="text-center mb-8">
-          <img src={eyelitzLogo} alt="Eyelitz Logo" className="w-24 h-24 mx-auto object-contain mb-4" />
+          <img src={localStorage.getItem('theme') === 'dark' ? eyelitzLogo : eyelitzLogoLight} alt="Eyelitz Logo" className="w-24 h-24 mx-auto object-contain mb-4" />
           <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-white dark:via-slate-100 dark:to-white">
             Welcome to Eyelitz
           </h2>
