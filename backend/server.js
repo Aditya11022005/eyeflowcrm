@@ -21,6 +21,7 @@ import publicRoutes from './routes/publicRoutes.js';
 import labPartnerRoutes from './routes/labPartnerRoutes.js';
 import ticketRoutes from './routes/ticketRoutes.js';
 import { startMarketingScheduler } from './utils/marketingScheduler.js';
+import { invalidateOnWrite } from './middleware/cacheInvalidator.js';
 
 // Models for seed
 import User from './models/User.js';
@@ -73,6 +74,9 @@ app.use(limiter);
 
 // Body Parser
 app.use(express.json());
+
+// Cache Invalidation Middleware for Tenant Dashboards (DSA Optimization)
+app.use(invalidateOnWrite);
 
 // Mount Routes
 app.use('/api/auth', authRoutes);

@@ -25,6 +25,14 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Redirect if server is offline (Network Error) or returns 5xx (Server Error)
+    if (!error.response || (error.response.status >= 500 && error.response.status <= 504)) {
+      if (window.location.pathname !== '/service-unavailable') {
+        window.location.href = '/service-unavailable';
+      }
+      return Promise.reject(error);
+    }
+
     if (error.response) {
       const { status, data } = error.response;
       
@@ -42,8 +50,6 @@ api.interceptors.response.use(
 
       // Subscription expired handler
       if (status === 403 && data.isSubscriptionExpired) {
-        // We let the components handle the UI banner or redirect.
-        // We append the flag to the error so pages can inspect it.
         error.isSubscriptionExpired = true;
       }
     }

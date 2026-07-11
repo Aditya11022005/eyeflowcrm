@@ -4,6 +4,7 @@ import Appointment from '../models/Appointment.js';
 import Invoice from '../models/Invoice.js';
 import Inventory from '../models/Inventory.js';
 import Notification from '../models/Notification.js';
+import { dashboardCache } from '../utils/cache.js';
 
 // @desc    Get dashboard metrics and analytics
 // @route   GET /api/reports/dashboard
@@ -11,6 +12,16 @@ import Notification from '../models/Notification.js';
 export const getDashboardData = async (req, res) => {
   try {
     const storeId = req.storeId;
+
+    // Check custom cache
+    const cachedData = dashboardCache.get(storeId, 'dashboard');
+    if (cachedData) {
+      console.log(`[DSA-Cache] Dashboard served from memory for store: ${storeId}`);
+      return res.json({
+        success: true,
+        ...cachedData,
+      });
+    }
 
     // 1. Total Patients
     const totalPatients = await Patient.countDocuments({ storeId });
@@ -70,11 +81,7 @@ export const getDashboardData = async (req, res) => {
     ].sort((a,b) => b.time - a.time).slice(0, 5);
 
     // 7. Recharts simulated/calculated trends (Last 6 Months)
-    // We will aggregate monthly metrics dynamically
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const currentMonthIdx = new Date().getMonth();
-    
-    // Let's generate a list of the last 6 months
     const revenueTrend = [];
     const patientGrowth = [];
 
@@ -123,8 +130,7 @@ export const getDashboardData = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(10);
 
-    res.json({
-      success: true,
+    const dashboardData = {
       metrics: {
         totalPatients,
         dailyAppointments,
@@ -139,6 +145,14 @@ export const getDashboardData = async (req, res) => {
       recentActivities: activities,
       lowStockList,
       notifications,
+    };
+
+    // Cache the aggregated dashboard results for 2 minutes
+    dashboardCache.set(storeId, 'dashboard', dashboardData);
+
+    res.json({
+      success: true,
+      ...dashboardData,
     });
   } catch (error) {
     console.error('Report Aggregation Error:', error);

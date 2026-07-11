@@ -22,42 +22,47 @@ import InvoiceDetailsPage from './pages/InvoiceDetailsPage.jsx';
 import MarketingPage from './pages/MarketingPage.jsx';
 import HelpdeskPage from './pages/HelpdeskPage.jsx';
 import PartnersPage from './pages/PartnersPage.jsx';
+import ServiceUnavailablePage from './pages/ServiceUnavailablePage.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 
 function App() {
   return (
-    <Routes>
-      {/* Public Pages */}
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/signup" element={<SignupPage />} />
-      <Route path="/verify-email" element={<VerifyEmailPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="/invoices/:id" element={<InvoiceDetailsPage />} />
+    <ErrorBoundary>
+      <Routes>
+        {/* Public Pages */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/invoices/:id" element={<InvoiceDetailsPage />} />
+        <Route path="/service-unavailable" element={<ServiceUnavailablePage />} />
 
-      {/* Protected SaaS App routes */}
-      <Route element={<DashboardLayout />}>
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/patients" element={<PatientsPage />} />
-        <Route path="/patients/:id" element={<PatientDetailsPage />} />
-        <Route path="/checkups" element={<CheckupPage />} />
-        <Route path="/prescriptions/:id" element={<PrescriptionDetailsPage />} />
-        <Route path="/orders" element={<OrdersPage />} />
-        <Route path="/inventory" element={<InventoryPage />} />
-        <Route path="/billing" element={<BillingPage />} />
-        <Route path="/appointments" element={<AppointmentsPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/marketing" element={<MarketingPage />} />
-        <Route path="/helpdesk" element={<HelpdeskPage />} />
-        <Route path="/partners" element={<PartnersPage />} />
-        
-        {/* Superadmin Panel */}
-        <Route path="/admin" element={<AdminDashboardPage />} />
-      </Route>
+        {/* Protected SaaS App routes */}
+        <Route element={<DashboardLayout />}>
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/patients" element={<PatientsPage />} />
+          <Route path="/patients/:id" element={<PatientDetailsPage />} />
+          <Route path="/checkups" element={<CheckupPage />} />
+          <Route path="/prescriptions/:id" element={<PrescriptionDetailsPage />} />
+          <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/inventory" element={<InventoryPage />} />
+          <Route path="/billing" element={<BillingPage />} />
+          <Route path="/appointments" element={<AppointmentsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/marketing" element={<MarketingPage />} />
+          <Route path="/helpdesk" element={<HelpdeskPage />} />
+          <Route path="/partners" element={<PartnersPage />} />
+          
+          {/* Superadmin Panel */}
+          <Route path="/admin" element={<AdminDashboardPage />} />
+        </Route>
 
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </ErrorBoundary>
   );
 }
 
