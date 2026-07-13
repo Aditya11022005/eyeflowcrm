@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Plus, UserPlus, Eye, Phone, Calendar, ArrowRight, X, Users } from 'lucide-react';
 import api from '../utils/api.js';
+import { TableSkeleton } from '../components/SkeletonLoader.jsx';
 
 const PatientsPage = () => {
   const [patients, setPatients] = useState([]);
@@ -113,9 +114,7 @@ const PatientsPage = () => {
 
       {/* Database list Table */}
       {loading ? (
-        <div className="flex items-center justify-center h-60">
-          <div className="w-8 h-8 border-4 border-clinic-500 border-t-transparent rounded-full animate-spin" />
-        </div>
+        <TableSkeleton rows={5} cols={5} />
       ) : patients.length === 0 ? (
         <div className="p-12 text-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-darkbg-100 rounded-3xl">
           <Users className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />

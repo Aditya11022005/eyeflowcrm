@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import api from '../utils/api.js';
+import { DashboardSkeleton } from '../components/SkeletonLoader.jsx';
 
 const DashboardPage = () => {
   const [metrics, setMetrics] = useState({
@@ -44,11 +45,7 @@ const DashboardPage = () => {
   }, []);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="w-10 h-10 border-4 border-clinic-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (error) {

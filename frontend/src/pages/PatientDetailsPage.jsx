@@ -7,6 +7,7 @@ import {
   Edit, X
 } from 'lucide-react';
 import api from '../utils/api.js';
+import { DetailsSkeleton } from '../components/SkeletonLoader.jsx';
 
 const PatientDetailsPage = () => {
   const { id } = useParams();
@@ -186,11 +187,7 @@ const PatientDetailsPage = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="w-10 h-10 border-4 border-clinic-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <DetailsSkeleton />;
   }
 
   if (error || !patient) {

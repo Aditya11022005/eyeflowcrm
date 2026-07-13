@@ -4,6 +4,7 @@ import { Package, Search, Plus, Filter, AlertTriangle, AlertCircle, X, Printer, 
 import api from '../utils/api.js';
 import JsBarcode from 'jsbarcode';
 import { Html5Qrcode } from 'html5-qrcode';
+import { TableSkeleton } from '../components/SkeletonLoader.jsx';
 
 const BarcodeRenderer = ({ value, name, brand, price }) => {
   const svgRef = useRef(null);
@@ -612,9 +613,7 @@ const InventoryPage = () => {
 
       {/* Catalog Table */}
       {loading ? (
-        <div className="flex items-center justify-center h-60">
-          <div className="w-8 h-8 border-4 border-clinic-500 border-t-transparent rounded-full animate-spin" />
-        </div>
+        <TableSkeleton rows={6} cols={7} />
       ) : inventory.length === 0 ? (
         <div className="p-12 text-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-darkbg-100 rounded-3xl">
           <Package className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />

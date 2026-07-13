@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { ArrowLeft, Printer, Eye, Calendar, Sparkles, Building } from 'lucide-react';
 import api from '../utils/api.js';
+import { DetailsSkeleton } from '../components/SkeletonLoader.jsx';
 
 const PrescriptionDetailsPage = () => {
   const { id } = useParams();
@@ -33,11 +34,7 @@ const PrescriptionDetailsPage = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="w-10 h-10 border-4 border-clinic-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <DetailsSkeleton />;
   }
 
   if (error || !prescription) {
