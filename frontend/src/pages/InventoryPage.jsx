@@ -508,6 +508,48 @@ const InventoryPage = () => {
     return () => clearTimeout(delayDebounceFn);
   }, [category, search]);
 
+  // Listen for physical hardware barcode scanner gun (keyboard emulation)
+  useEffect(() => {
+    let buffer = '';
+    let lastKeyTime = Date.now();
+
+    const handleKeyDown = (e) => {
+      // Ignore key events if the user is typing inside standard input fields
+      const targetTag = e.target.tagName.toLowerCase();
+      if (targetTag === 'input' || targetTag === 'textarea' || targetTag === 'select') {
+        return;
+      }
+
+      const currentTime = Date.now();
+      
+      // Hardware scanners simulate high-speed keystrokes (typically < 80ms gaps)
+      if (currentTime - lastKeyTime > 100) {
+        buffer = ''; // Reset buffer if there is a human-like delay
+      }
+
+      lastKeyTime = currentTime;
+
+      // Append standard alphanumeric digits to buffer
+      if (e.key.length === 1 && /[a-zA-Z0-9-]/.test(e.key)) {
+        buffer += e.key;
+      }
+
+      // Scanner gun sends an 'Enter' keystroke at the end of the read sequence
+      if (e.key === 'Enter' && buffer.length > 3) {
+        const scannedCode = buffer;
+        buffer = '';
+        
+        // Update state to trigger table search lookup
+        setSearch(scannedCode);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [setSearch]);
+
   const handleAddItem = async (e) => {
     e.preventDefault();
     setError('');
