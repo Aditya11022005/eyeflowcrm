@@ -30,28 +30,28 @@ import { seedStores } from './utils/seedStores.js';
 dotenv.config();
 
 // Connect to Database
-connectDB().then(async () => {
-  // Seed Super Admin if not exists
-  try {
-    const adminEmail = 'eyelitzcrm@gmail.com';
-    const adminExists = await User.findOne({ email: adminEmail });
-    if (!adminExists) {
-      await User.create({
-        name: 'Eyelitz Super Admin',
-        email: adminEmail,
-        password: 'adminpassword123',
-        role: 'superadmin',
-        active: true,
-        isVerified: true,
-      });
-      console.log('Seeded platform Super Admin (eyelitzcrm@gmail.com / adminpassword123)');
+connectDB().then(async() => {
+    // Seed Super Admin if not exists
+    try {
+        const adminEmail = 'eyelitzcrm@gmail.com';
+        const adminExists = await User.findOne({ email: adminEmail });
+        if (!adminExists) {
+            await User.create({
+                name: 'Eyelitz Super Admin',
+                email: adminEmail,
+                password: 'adminpassword123',
+                role: 'superadmin',
+                active: true,
+                isVerified: true,
+            });
+            console.log('Seeded platform Super Admin (eyelitzcrm@gmail.com / adminpassword123)');
+        }
+
+        // Seed 10 mock stores and owners
+        await seedStores();
+    } catch (err) {
+        console.error('Seeding Error:', err);
     }
-    
-    // Seed 10 mock stores and owners
-    await seedStores();
-  } catch (err) {
-    console.error('Seeding Error:', err);
-  }
 });
 
 const app = express();
@@ -59,16 +59,16 @@ const app = express();
 // Security Middlewares
 app.use(helmet());
 app.use(cors({
-  origin: '*', // Allow all origins for dev simplicity
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+    origin: '*', // Allow all origins for dev simplicity
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 // Rate Limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 mins
-  max: 1000, // Limit each IP to 1000 requests per window
-  message: { success: false, message: 'Too many requests from this IP, please try again later.' }
+    windowMs: 15 * 60 * 1000, // 15 mins
+    max: 1000, // Limit each IP to 1000 requests per window
+    message: { success: false, message: 'Too many requests from this IP, please try again later.' }
 });
 app.use(limiter);
 
@@ -96,21 +96,21 @@ app.use('/api/partners', labPartnerRoutes);
 
 // Base Route
 app.get('/', (req, res) => {
-  res.json({ message: 'Eyelitz CRM Multi-Tenant API is running...' });
+    res.json({ message: 'Eyelitz CRM Multi-Tenant API is running...' });
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(err.statusCode || 500).json({
-    success: false,
-    message: err.message || 'Server Error',
-  });
+    console.error(err.stack);
+    res.status(err.statusCode || 500).json({
+        success: false,
+        message: err.message || 'Server Error',
+    });
 });
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-  // Start automated marketing background scheduler
-  startMarketingScheduler();
+    console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+    // Start automated marketing background scheduler
+    startMarketingScheduler();
 });
